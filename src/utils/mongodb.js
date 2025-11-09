@@ -1,19 +1,30 @@
 import mongoose from 'mongoose'
 
 // MongoDB connection string - URL encode special characters in password (@ becomes %40)
-// In Netlify, use environment variable MONGODB_URI
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://bansalayush8279:Ayush%401234@cluster0.jfltuuy.mongodb.net/invoice-app?retryWrites=true&w=majority'
+// In Vercel/Netlify, use environment variable MONGODB_URI
+const DEFAULT_MONGODB_URI = 'mongodb+srv://bansalayush8279:Ayush%401234@cluster0.jfltuuy.mongodb.net/invoice-app?retryWrites=true&w=majority'
+const MONGODB_URI = process.env.MONGODB_URI || DEFAULT_MONGODB_URI
 
 let isConnected = false
 
 // Connect to MongoDB
 export const connectDB = async () => {
-  if (isConnected) {
+  if (isConnected && mongoose.connection.readyState === 1) {
     return
   }
 
   try {
-    await mongoose.connect(MONGODB_URI, {
+    // Close existing connection if any
+    if (mongoose.connection.readyState !== 0) {
+      await mongoose.connection.close()
+    }
+
+    const uri = process.env.MONGODB_URI || MONGODB_URI
+    if (!uri) {
+      throw new Error('MONGODB_URI environment variable is not set')
+    }
+
+    await mongoose.connect(uri, {
       useNewUrlParser: true,
       useUnifiedTopology: true,
     })
@@ -21,6 +32,7 @@ export const connectDB = async () => {
     console.log('✅ Connected to MongoDB')
   } catch (error) {
     console.error('❌ MongoDB connection error:', error)
+    console.error('Connection string used:', process.env.MONGODB_URI ? 'From env var' : 'Default')
     isConnected = false
     throw error
   }

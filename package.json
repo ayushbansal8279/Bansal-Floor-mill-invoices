@@ -9,6 +9,9 @@
     "preview": "vite preview",
     "netlify:dev": "netlify dev"
   },
+  "engines": {
+    "node": "18.x"
+  },
   "dependencies": {
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
