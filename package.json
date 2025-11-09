@@ -14,6 +14,8 @@
     "react-dom": "^18.2.0",
     "react-icons": "^4.12.0",
     "framer-motion": "^10.16.16",
+    "react-hot-toast": "^2.4.1",
+    "mongoose": "^8.0.3",
     "express": "^4.18.2",
     "cors": "^2.8.5"
   },
