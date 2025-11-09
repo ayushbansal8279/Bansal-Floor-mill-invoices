@@ -1,6 +1,7 @@
 import mongoose from 'mongoose'
 
 // MongoDB connection string - URL encode special characters in password (@ becomes %40)
+// In Netlify, use environment variable MONGODB_URI
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://bansalayush8279:Ayush%401234@cluster0.jfltuuy.mongodb.net/invoice-app?retryWrites=true&w=majority'
 
 let isConnected = false
