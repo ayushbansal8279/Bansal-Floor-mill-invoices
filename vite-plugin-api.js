@@ -1,7 +1,7 @@
 import fs from 'fs'
 import path from 'path'
 import { fileURLToPath } from 'url'
-import { saveInvoiceToSheets, deleteInvoiceFromSheets } from './src/utils/googleSheets.js'
+import { connectDB, Invoice, LastInvoiceNumber, Item, Company } from './src/utils/mongodb.js'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -179,8 +179,13 @@ export default function vitePluginApi() {
   return {
     name: 'vite-plugin-api',
     configureServer(server) {
+      // Connect to MongoDB
+      connectDB().catch(err => {
+        console.error('MongoDB connection failed:', err)
+      })
+
       // Invoices API - match all /api/invoices requests
-      server.middlewares.use((req, res, next) => {
+      server.middlewares.use(async (req, res, next) => {
         // Only handle /api/invoices requests
         if (!req.url || !req.url.startsWith('/api/invoices')) {
           next()
@@ -207,42 +212,79 @@ export default function vitePluginApi() {
         
         if (req.method === 'GET' && isBasePath) {
           // GET /api/invoices
-          const invoices = readInvoices()
-          res.end(JSON.stringify(invoices))
+          try {
+            await connectDB()
+            const invoices = await Invoice.find({}).sort({ savedAt: -1 })
+            res.end(JSON.stringify(invoices))
+          } catch (error) {
+            console.error('Error fetching invoices:', error)
+            res.statusCode = 500
+            res.end(JSON.stringify({ error: 'Failed to fetch invoices' }))
+          }
         } else if (req.method === 'GET' && isLastNumber) {
           // GET /api/invoices/last-number
-          const lastNumber = getLastInvoiceNumber()
-          res.end(JSON.stringify({ lastNumber }))
+          try {
+            await connectDB()
+            const doc = await LastInvoiceNumber.findById('lastInvoiceNumber')
+            const lastNumber = doc ? doc.lastNumber : 0
+            res.end(JSON.stringify({ lastNumber }))
+          } catch (error) {
+            console.error('Error fetching last invoice number:', error)
+            res.statusCode = 500
+            res.end(JSON.stringify({ error: 'Failed to fetch last invoice number' }))
+          }
         } else if (req.method === 'GET' && isNextNumber) {
           // GET /api/invoices/next-number
-          const lastNumber = getLastInvoiceNumber()
-          res.end(JSON.stringify({ nextNumber: lastNumber + 1 }))
+          try {
+            await connectDB()
+            const doc = await LastInvoiceNumber.findById('lastInvoiceNumber')
+            const lastNumber = doc ? doc.lastNumber : 0
+            res.end(JSON.stringify({ nextNumber: lastNumber + 1 }))
+          } catch (error) {
+            console.error('Error fetching next invoice number:', error)
+            res.statusCode = 500
+            res.end(JSON.stringify({ error: 'Failed to fetch next invoice number' }))
+          }
         } else if (req.method === 'GET' && isExport) {
           // GET /api/invoices/export/json
-          const invoices = readInvoices()
-          res.setHeader('Content-Disposition', `attachment; filename=invoices_${new Date().toISOString().split('T')[0]}.json`)
-          res.end(JSON.stringify(invoices))
+          try {
+            await connectDB()
+            const invoices = await Invoice.find({}).sort({ savedAt: -1 })
+            res.setHeader('Content-Disposition', `attachment; filename=invoices_${new Date().toISOString().split('T')[0]}.json`)
+            res.end(JSON.stringify(invoices))
+          } catch (error) {
+            console.error('Error exporting invoices:', error)
+            res.statusCode = 500
+            res.end(JSON.stringify({ error: 'Failed to export invoices' }))
+          }
         } else if (req.method === 'GET') {
           // GET /api/invoices/:invoiceNumber
-          const invoiceNumber = url.split('/').pop() || url.replace(/^\/api\/invoices\//, '').replace(/^\//, '')
-          const invoices = readInvoices()
-          const invoice = invoices.find(inv => inv.invoiceNumber === invoiceNumber)
-          if (invoice) {
-            res.end(JSON.stringify(invoice))
-          } else {
-            res.statusCode = 404
-            res.end(JSON.stringify({ error: 'Invoice not found' }))
+          try {
+            await connectDB()
+            const invoiceNumber = url.split('/').pop() || url.replace(/^\/api\/invoices\//, '').replace(/^\//, '')
+            const invoice = await Invoice.findOne({ invoiceNumber })
+            if (invoice) {
+              res.end(JSON.stringify(invoice))
+            } else {
+              res.statusCode = 404
+              res.end(JSON.stringify({ error: 'Invoice not found' }))
+            }
+          } catch (error) {
+            console.error('Error fetching invoice:', error)
+            res.statusCode = 500
+            res.end(JSON.stringify({ error: 'Failed to fetch invoice' }))
           }
         } else if (req.method === 'POST') {
           // POST /api/invoices
           let body = ''
           req.on('data', chunk => { body += chunk.toString() })
-          req.on('end', () => {
+          req.on('end', async () => {
             try {
+              await connectDB()
               const invoiceData = JSON.parse(body)
-              const invoices = readInvoices()
               
-              const exists = invoices.find(inv => inv.invoiceNumber === invoiceData.invoiceNumber)
+              // Check if invoice number already exists
+              const exists = await Invoice.findOne({ invoiceNumber: invoiceData.invoiceNumber })
               if (exists) {
                 res.statusCode = 400
                 res.end(JSON.stringify({ error: 'Invoice number already exists' }))
@@ -250,27 +292,24 @@ export default function vitePluginApi() {
               }
               
               invoiceData.savedAt = new Date().toISOString()
-              invoices.push(invoiceData)
+              const invoice = new Invoice(invoiceData)
+              await invoice.save()
               
-              if (writeInvoices(invoices)) {
-                const invoiceNum = extractInvoiceNumber(invoiceData.invoiceNumber)
-                if (invoiceNum) {
-                  setLastInvoiceNumber(invoiceNum)
-                }
-                
-                // Save to Google Sheets in parallel (non-blocking)
-                saveInvoiceToSheets(invoiceData, false).catch(err => {
-                  console.error('Failed to save to Google Sheets:', err)
-                })
-                
-                res.end(JSON.stringify({ success: true, invoice: invoiceData }))
-              } else {
-                res.statusCode = 500
-                res.end(JSON.stringify({ error: 'Failed to save invoice' }))
+              // Update last invoice number
+              const invoiceNum = extractInvoiceNumber(invoiceData.invoiceNumber)
+              if (invoiceNum) {
+                await LastInvoiceNumber.findByIdAndUpdate(
+                  'lastInvoiceNumber',
+                  { lastNumber: invoiceNum },
+                  { upsert: true, new: true }
+                )
               }
+              
+              res.end(JSON.stringify({ success: true, invoice: invoice.toObject() }))
             } catch (error) {
+              console.error('Error creating invoice:', error)
               res.statusCode = 500
-              res.end(JSON.stringify({ error: 'Failed to create invoice' }))
+              res.end(JSON.stringify({ error: 'Failed to create invoice: ' + error.message }))
             }
           })
         } else if (req.method === 'PUT') {
@@ -278,60 +317,53 @@ export default function vitePluginApi() {
           const invoiceNumber = url.split('/').pop() || url.replace(/^\/api\/invoices\//, '').replace(/^\//, '')
           let body = ''
           req.on('data', chunk => { body += chunk.toString() })
-          req.on('end', () => {
+          req.on('end', async () => {
             try {
+              await connectDB()
               const updatedData = JSON.parse(body)
-              const invoices = readInvoices()
-              const index = invoices.findIndex(inv => inv.invoiceNumber === invoiceNumber)
               
-              if (index === -1) {
+              const existingInvoice = await Invoice.findOne({ invoiceNumber })
+              if (!existingInvoice) {
                 res.statusCode = 404
                 res.end(JSON.stringify({ error: 'Invoice not found' }))
                 return
               }
               
-              updatedData.savedAt = invoices[index].savedAt || new Date().toISOString()
+              updatedData.savedAt = existingInvoice.savedAt || new Date().toISOString()
               updatedData.updatedAt = new Date().toISOString()
-              invoices[index] = updatedData
               
-              if (writeInvoices(invoices)) {
-                // Update Google Sheets in parallel (non-blocking)
-                saveInvoiceToSheets(updatedData, true).catch(err => {
-                  console.error('Failed to update Google Sheets:', err)
-                })
-                
-                res.end(JSON.stringify({ success: true, invoice: updatedData }))
-              } else {
-                res.statusCode = 500
-                res.end(JSON.stringify({ error: 'Failed to update invoice' }))
-              }
+              const updatedInvoice = await Invoice.findOneAndUpdate(
+                { invoiceNumber },
+                updatedData,
+                { new: true }
+              )
+              
+              res.end(JSON.stringify({ success: true, invoice: updatedInvoice.toObject() }))
             } catch (error) {
+              console.error('Error updating invoice:', error)
               res.statusCode = 500
-              res.end(JSON.stringify({ error: 'Failed to update invoice' }))
+              res.end(JSON.stringify({ error: 'Failed to update invoice: ' + error.message }))
             }
           })
         } else if (req.method === 'DELETE') {
           // DELETE /api/invoices/:invoiceNumber
           const invoiceNumber = url.split('/').pop() || url.replace(/^\/api\/invoices\//, '').replace(/^\//, '')
-          const invoices = readInvoices()
-          const filtered = invoices.filter(inv => inv.invoiceNumber !== invoiceNumber)
           
-          if (filtered.length === invoices.length) {
-            res.statusCode = 404
-            res.end(JSON.stringify({ error: 'Invoice not found' }))
-            return
-          }
-          
-          if (writeInvoices(filtered)) {
-            // Delete from Google Sheets in parallel (non-blocking)
-            deleteInvoiceFromSheets(invoiceNumber).catch(err => {
-              console.error('Failed to delete from Google Sheets:', err)
-            })
+          try {
+            await connectDB()
+            const result = await Invoice.findOneAndDelete({ invoiceNumber })
+            
+            if (!result) {
+              res.statusCode = 404
+              res.end(JSON.stringify({ error: 'Invoice not found' }))
+              return
+            }
             
             res.end(JSON.stringify({ success: true }))
-          } else {
+          } catch (error) {
+            console.error('Error deleting invoice:', error)
             res.statusCode = 500
-            res.end(JSON.stringify({ error: 'Failed to delete invoice' }))
+            res.end(JSON.stringify({ error: 'Failed to delete invoice: ' + error.message }))
           }
         } else {
           next()
@@ -339,7 +371,7 @@ export default function vitePluginApi() {
       })
 
       // Items API
-      server.middlewares.use((req, res, next) => {
+      server.middlewares.use(async (req, res, next) => {
         // Only handle /api/items requests
         if (!req.url || !req.url.startsWith('/api/items')) {
           next()
@@ -356,30 +388,32 @@ export default function vitePluginApi() {
         }
 
         if (req.method === 'GET') {
-          const items = readItems()
-          res.end(JSON.stringify(items))
+          try {
+            await connectDB()
+            const items = await Item.find({}).sort({ id: 1 })
+            res.end(JSON.stringify(items))
+          } catch (error) {
+            console.error('Error fetching items:', error)
+            res.statusCode = 500
+            res.end(JSON.stringify({ error: 'Failed to fetch items' }))
+          }
         } else if (req.method === 'POST') {
           let body = ''
           req.on('data', chunk => { body += chunk.toString() })
-          req.on('end', () => {
+          req.on('end', async () => {
             try {
+              await connectDB()
               const itemData = JSON.parse(body)
-              const items = readItems()
-              const newItem = {
+              const newItem = new Item({
                 ...itemData,
                 id: itemData.id || Date.now()
-              }
-              items.push(newItem)
-              
-              if (writeItems(items)) {
-                res.end(JSON.stringify({ success: true, item: newItem }))
-              } else {
-                res.statusCode = 500
-                res.end(JSON.stringify({ error: 'Failed to save item' }))
-              }
+              })
+              await newItem.save()
+              res.end(JSON.stringify({ success: true, item: newItem.toObject() }))
             } catch (error) {
+              console.error('Error creating item:', error)
               res.statusCode = 500
-              res.end(JSON.stringify({ error: 'Failed to create item' }))
+              res.end(JSON.stringify({ error: 'Failed to create item: ' + error.message }))
             }
           })
         } else if (req.method === 'PUT') {
@@ -395,34 +429,27 @@ export default function vitePluginApi() {
           
           let body = ''
           req.on('data', chunk => { body += chunk.toString() })
-          req.on('end', () => {
+          req.on('end', async () => {
             try {
+              await connectDB()
               const updatedData = JSON.parse(body)
-              const items = readItems()
-              // Compare IDs - handle both number and string IDs
-              const index = items.findIndex(item => {
-                const itemIdNum = typeof item.id === 'number' ? item.id : parseInt(item.id)
-                return itemIdNum === itemId
-              })
+              const updatedItem = await Item.findOneAndUpdate(
+                { id: itemId },
+                updatedData,
+                { new: true }
+              )
               
-              if (index === -1) {
+              if (!updatedItem) {
                 res.statusCode = 404
                 res.end(JSON.stringify({ error: 'Item not found' }))
                 return
               }
               
-              items[index] = { ...items[index], ...updatedData }
-              
-              if (writeItems(items)) {
-                res.end(JSON.stringify({ success: true, item: items[index] }))
-              } else {
-                res.statusCode = 500
-                res.end(JSON.stringify({ error: 'Failed to update item' }))
-              }
+              res.end(JSON.stringify({ success: true, item: updatedItem.toObject() }))
             } catch (error) {
               console.error('Error updating item:', error)
               res.statusCode = 500
-              res.end(JSON.stringify({ error: 'Failed to update item' }))
+              res.end(JSON.stringify({ error: 'Failed to update item: ' + error.message }))
             }
           })
         } else if (req.method === 'DELETE') {
@@ -436,24 +463,21 @@ export default function vitePluginApi() {
             return
           }
           
-          const items = readItems()
-          // Compare IDs - handle both number and string IDs
-          const filtered = items.filter(item => {
-            const itemIdNum = typeof item.id === 'number' ? item.id : parseInt(item.id)
-            return itemIdNum !== itemId
-          })
-          
-          if (filtered.length === items.length) {
-            res.statusCode = 404
-            res.end(JSON.stringify({ error: 'Item not found' }))
-            return
-          }
-          
-          if (writeItems(filtered)) {
+          try {
+            await connectDB()
+            const result = await Item.findOneAndDelete({ id: itemId })
+            
+            if (!result) {
+              res.statusCode = 404
+              res.end(JSON.stringify({ error: 'Item not found' }))
+              return
+            }
+            
             res.end(JSON.stringify({ success: true }))
-          } else {
+          } catch (error) {
+            console.error('Error deleting item:', error)
             res.statusCode = 500
-            res.end(JSON.stringify({ error: 'Failed to delete item' }))
+            res.end(JSON.stringify({ error: 'Failed to delete item: ' + error.message }))
           }
         } else {
           next()
@@ -461,7 +485,7 @@ export default function vitePluginApi() {
       })
 
       // Companies API
-      server.middlewares.use((req, res, next) => {
+      server.middlewares.use(async (req, res, next) => {
         // Only handle /api/companies requests
         if (!req.url || !req.url.startsWith('/api/companies')) {
           next()
@@ -480,27 +504,47 @@ export default function vitePluginApi() {
         if (req.method === 'GET' && req.url.includes('/suggestions')) {
           const url = new URL(req.url, `http://${req.headers.host}`)
           const searchTerm = url.searchParams.get('q') || ''
-          const companies = readCompanies()
           
-          if (!searchTerm) {
-            res.end(JSON.stringify(companies.slice(0, 10)))
-            return
+          try {
+            await connectDB()
+            let companies
+            if (!searchTerm) {
+              companies = await Company.find({}).limit(10)
+            } else {
+              const term = searchTerm.toLowerCase()
+              companies = await Company.find({
+                $or: [
+                  { name: { $regex: term, $options: 'i' } },
+                  { nameHindi: { $regex: term, $options: 'i' } }
+                ]
+              }).limit(10)
+            }
+            // Return just company names for backward compatibility
+            const companyNames = companies.map(c => c.name)
+            res.end(JSON.stringify(companyNames))
+          } catch (error) {
+            console.error('Error fetching company suggestions:', error)
+            res.statusCode = 500
+            res.end(JSON.stringify({ error: 'Failed to fetch suggestions' }))
           }
-          
-          const term = searchTerm.toLowerCase()
-          const suggestions = companies.filter(company => 
-            company.toLowerCase().includes(term)
-          ).slice(0, 10)
-          
-          res.end(JSON.stringify(suggestions))
         } else if (req.method === 'GET') {
-          const companies = readCompanies()
-          res.end(JSON.stringify(companies))
+          try {
+            await connectDB()
+            const companies = await Company.find({})
+            // Return just company names for backward compatibility
+            const companyNames = companies.map(c => c.name)
+            res.end(JSON.stringify(companyNames))
+          } catch (error) {
+            console.error('Error fetching companies:', error)
+            res.statusCode = 500
+            res.end(JSON.stringify({ error: 'Failed to fetch companies' }))
+          }
         } else if (req.method === 'POST') {
           let body = ''
           req.on('data', chunk => { body += chunk.toString() })
-          req.on('end', () => {
+          req.on('end', async () => {
             try {
+              await connectDB()
               // Company name is sent as a JSON string (e.g., "Company Name")
               let companyName = body
               try {
@@ -510,22 +554,31 @@ export default function vitePluginApi() {
                 companyName = body
               }
               
-              const companies = readCompanies()
-              
-              if (!companies.includes(companyName) && companyName.trim()) {
-                companies.push(companyName)
-                if (writeCompanies(companies)) {
-                  res.end(JSON.stringify({ success: true, companies }))
-                } else {
-                  res.statusCode = 500
-                  res.end(JSON.stringify({ error: 'Failed to save company' }))
-                }
-              } else {
-                res.end(JSON.stringify({ success: true, companies, message: 'Company already exists' }))
+              if (!companyName || !companyName.trim()) {
+                res.end(JSON.stringify({ success: true, message: 'Empty company name' }))
+                return
               }
+              
+              // Check if company exists
+              const existing = await Company.findOne({ name: companyName })
+              if (existing) {
+                const allCompanies = await Company.find({})
+                const companyNames = allCompanies.map(c => c.name)
+                res.end(JSON.stringify({ success: true, companies: companyNames, message: 'Company already exists' }))
+                return
+              }
+              
+              // Create new company
+              const newCompany = new Company({ name: companyName.trim() })
+              await newCompany.save()
+              
+              const allCompanies = await Company.find({})
+              const companyNames = allCompanies.map(c => c.name)
+              res.end(JSON.stringify({ success: true, companies: companyNames }))
             } catch (error) {
+              console.error('Error creating company:', error)
               res.statusCode = 500
-              res.end(JSON.stringify({ error: 'Failed to create company' }))
+              res.end(JSON.stringify({ error: 'Failed to create company: ' + error.message }))
             }
           })
         } else {

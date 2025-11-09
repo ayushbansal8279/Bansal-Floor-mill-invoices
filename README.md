@@ -14,33 +14,25 @@ A fully functional invoice generation application built with React and Vite. Cre
 - ✅ Split view for two invoices on one page
 - ✅ View and search all previous invoices
 - ✅ Edit and delete invoices
-- ✅ Persistent file-based storage (JSON files)
-- ✅ **Google Sheets integration** - Automatically sync invoices to Google Sheets (optional)
+- ✅ **MongoDB database** - All invoice data stored in MongoDB cloud database
 - ✅ Responsive design for mobile and desktop
 - ✅ Modern, beautiful UI with animations
 - ✅ Hindi/English language support for company names
 
 ## Data Storage
 
-**Invoices are saved to JSON files in the project directory:**
-- `src/data/invoices.json` - All invoice data
-- `src/data/lastInvoiceNumber.json` - Last invoice number for auto-increment
+**Invoices are now stored in MongoDB:**
+- All invoice data is saved to MongoDB Atlas cloud database
+- Database: `invoice-app`
+- Collections: `invoices`, `items`, `companies`, `lastinvoicenumbers`
 
 This means your invoice data is:
-- ✅ **Persistent** - Saved to files, not just browser storage
-- ✅ **Accessible** - Can be accessed from any device on the same network
-- ✅ **Backup-able** - JSON files can be easily backed up or transferred
-- ✅ **Version-controlled** - Can be tracked with Git if needed
+- ✅ **Cloud-based** - Stored in MongoDB Atlas, accessible from anywhere
+- ✅ **Persistent** - Never lost, even if you clear browser data
+- ✅ **Scalable** - Can handle thousands of invoices
+- ✅ **Secure** - Protected by MongoDB authentication
+- ✅ **Backed up** - MongoDB Atlas provides automatic backups
 
-### Google Sheets Integration (Optional)
-
-The application can automatically sync all invoice data to a Google Sheet in parallel with the JSON file storage. This provides:
-- ✅ **Cloud Backup** - Your invoices are backed up to Google Sheets
-- ✅ **Real-time Sync** - Every invoice create/update/delete is synced automatically
-- ✅ **Non-blocking** - Google Sheets sync runs in parallel, doesn't slow down the app
-- ✅ **Optional** - Works perfectly fine without Google Sheets configuration
-
-**Setup Instructions:** See [GOOGLE_SHEETS_SETUP.md](GOOGLE_SHEETS_SETUP.md) for detailed setup instructions.
 
 ## Getting Started
 
