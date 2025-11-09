@@ -51,15 +51,65 @@ export default async function handler(req, res) {
 
     // GET /api/invoices/last-number
     if (method === 'GET' && isLastNumber) {
-      const doc = await LastInvoiceNumber.findById('lastInvoiceNumber')
-      const lastNumber = doc ? doc.lastNumber : 0
+      let doc = await LastInvoiceNumber.findById('lastInvoiceNumber')
+      let lastNumber = doc ? doc.lastNumber : 0
+      
+      // If no last number record exists, find the highest invoice number from actual invoices
+      if (lastNumber === 0) {
+        const invoices = await Invoice.find({}).sort({ savedAt: -1 })
+        if (invoices.length > 0) {
+          // Extract numbers from all invoice numbers and find the max
+          const numbers = invoices
+            .map(inv => {
+              const match = inv.invoiceNumber?.toString().match(/\d+/)
+              return match ? parseInt(match[0], 10) : 0
+            })
+            .filter(n => n > 0)
+          
+          if (numbers.length > 0) {
+            lastNumber = Math.max(...numbers)
+            // Update the last invoice number record
+            await LastInvoiceNumber.findByIdAndUpdate(
+              'lastInvoiceNumber',
+              { lastNumber },
+              { upsert: true, new: true }
+            )
+          }
+        }
+      }
+      
       return res.status(200).json({ lastNumber })
     }
 
     // GET /api/invoices/next-number
     if (method === 'GET' && isNextNumber) {
-      const doc = await LastInvoiceNumber.findById('lastInvoiceNumber')
-      const lastNumber = doc ? doc.lastNumber : 0
+      let doc = await LastInvoiceNumber.findById('lastInvoiceNumber')
+      let lastNumber = doc ? doc.lastNumber : 0
+      
+      // If no last number record exists, find the highest invoice number from actual invoices
+      if (lastNumber === 0) {
+        const invoices = await Invoice.find({}).sort({ savedAt: -1 })
+        if (invoices.length > 0) {
+          // Extract numbers from all invoice numbers and find the max
+          const numbers = invoices
+            .map(inv => {
+              const match = inv.invoiceNumber?.toString().match(/\d+/)
+              return match ? parseInt(match[0], 10) : 0
+            })
+            .filter(n => n > 0)
+          
+          if (numbers.length > 0) {
+            lastNumber = Math.max(...numbers)
+            // Update the last invoice number record
+            await LastInvoiceNumber.findByIdAndUpdate(
+              'lastInvoiceNumber',
+              { lastNumber },
+              { upsert: true, new: true }
+            )
+          }
+        }
+      }
+      
       return res.status(200).json({ nextNumber: lastNumber + 1 })
     }
 
@@ -93,13 +143,21 @@ export default async function handler(req, res) {
       const invoice = new Invoice(invoiceData)
       await invoice.save()
       
+      // Update last invoice number - always update to the highest number
       const invoiceNum = extractInvoiceNumber(invoiceData.invoiceNumber)
       if (invoiceNum) {
-        await LastInvoiceNumber.findByIdAndUpdate(
-          'lastInvoiceNumber',
-          { lastNumber: invoiceNum },
-          { upsert: true, new: true }
-        )
+        const currentDoc = await LastInvoiceNumber.findById('lastInvoiceNumber')
+        const currentLast = currentDoc ? currentDoc.lastNumber : 0
+        
+        // Update if the new invoice number is higher than the current last number
+        if (invoiceNum > currentLast) {
+          await LastInvoiceNumber.findByIdAndUpdate(
+            'lastInvoiceNumber',
+            { lastNumber: invoiceNum },
+            { upsert: true, new: true }
+          )
+          console.log(`Updated last invoice number to ${invoiceNum}`)
+        }
       }
       
       return res.status(200).json({ success: true, invoice: invoice.toObject() })

@@ -40,8 +40,8 @@ const InvoiceForm = ({ onGenerate, initialData = null, isEditMode = false }) => 
   const suggestionsRef = useRef(null)
 
   useEffect(() => {
-    if (initialData) {
-      // Restore form data when coming back from preview
+    if (initialData && isEditMode) {
+      // Restore form data when editing existing invoice
       setInvoiceInfo(initialData)
       setCompanyNameLang(initialData.companyNameLang || 'hindi')
       setToCompanyLang(initialData.toCompanyLang || 'english')
@@ -54,14 +54,19 @@ const InvoiceForm = ({ onGenerate, initialData = null, isEditMode = false }) => 
           ratePrefilled: false
         })))
       }
-    } else {
+    } else if (!initialData || !isEditMode) {
       // Always get next invoice number for new invoices
       getNextInvoiceNumber().then(nextInvoiceNum => {
-        setInvoiceInfo(prev => ({
-          ...prev,
-          invoiceNumber: `INV-${nextInvoiceNum}`,
-          invoiceDate: new Date().toISOString().split('T')[0] // Reset date to today
-        }))
+        if (nextInvoiceNum) {
+          setInvoiceInfo(prev => ({
+            ...prev,
+            invoiceNumber: `INV-${nextInvoiceNum}`,
+            invoiceDate: new Date().toISOString().split('T')[0] // Reset date to today
+          }))
+        }
+      }).catch(error => {
+        console.error('Error getting next invoice number:', error)
+        toast.error('Failed to get next invoice number')
       })
     }
     loadPredefinedItems()
