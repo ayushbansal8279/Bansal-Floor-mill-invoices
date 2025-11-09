@@ -1,4 +1,7 @@
-const API_BASE_URL = '/api'
+// Use Vercel API routes in production, local API in development
+const API_BASE_URL = import.meta.env.PROD 
+  ? '/api' 
+  : (import.meta.env.VITE_API_URL || '/api')
 
 // Helper function for API calls
 const apiCall = async (endpoint, options = {}) => {

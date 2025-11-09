@@ -306,19 +306,26 @@ const InvoiceForm = ({ onGenerate, initialData = null, isEditMode = false }) => 
         }
       } else {
         // Save new invoice
-        const success = await saveInvoice(invoiceData)
-        if (success) {
-          toast.success('Invoice saved successfully!')
-          onGenerate(invoiceData, false)
-        } else {
-          const errorMsg = 'Failed to save invoice. Please check if the server is running on http://localhost:3001'
+        try {
+          const success = await saveInvoice(invoiceData)
+          if (success) {
+            toast.success('Invoice saved successfully!')
+            onGenerate(invoiceData, false)
+          } else {
+            const errorMsg = 'Failed to save invoice. Please check your connection and try again.'
+            setSubmitError(errorMsg)
+            toast.error(errorMsg)
+          }
+        } catch (error) {
+          console.error('Save invoice error:', error)
+          const errorMsg = error.message || 'Failed to save invoice. Please check your connection and try again.'
           setSubmitError(errorMsg)
           toast.error(errorMsg)
         }
       }
     } catch (error) {
       console.error('Error submitting invoice:', error)
-      const errorMsg = `Error: ${error.message || 'Failed to save invoice. Please ensure the backend server is running.'}`
+      const errorMsg = error.message || 'Failed to save invoice. Please check your connection and try again.'
       setSubmitError(errorMsg)
       toast.error(errorMsg)
     } finally {

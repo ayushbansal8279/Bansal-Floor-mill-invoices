@@ -11,7 +11,20 @@ export default async function handler(req, res) {
 
   try {
     await connectDB()
-    const { query, method, body } = req
+    const { query, method } = req
+    
+    // Parse body - Vercel may send it as a string or already parsed
+    let body = req.body
+    if (typeof body === 'string' && body.length > 0) {
+      try {
+        body = JSON.parse(body)
+      } catch (e) {
+        body = {}
+      }
+    } else if (!body) {
+      body = {}
+    }
+    
     const isSuggestions = query.path === 'suggestions'
     const searchTerm = query.q || ''
 
@@ -43,10 +56,13 @@ export default async function handler(req, res) {
     // POST /api/companies
     if (method === 'POST') {
       let companyName = body
-      try {
-        companyName = typeof body === 'string' ? JSON.parse(body) : body
-      } catch (e) {
-        // If not JSON, use as-is
+      // If body is an object, try to get the value
+      if (typeof companyName === 'object' && companyName !== null) {
+        companyName = companyName.name || companyName.value || JSON.stringify(companyName)
+      }
+      // If it's still an object, stringify it
+      if (typeof companyName === 'object') {
+        companyName = JSON.stringify(companyName)
       }
       
       if (!companyName || !companyName.trim()) {

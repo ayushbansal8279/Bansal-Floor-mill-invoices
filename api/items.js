@@ -11,7 +11,20 @@ export default async function handler(req, res) {
 
   try {
     await connectDB()
-    const { query, method, body } = req
+    const { query, method } = req
+    
+    // Parse body - Vercel may send it as a string or already parsed
+    let body = req.body
+    if (typeof body === 'string' && body.length > 0) {
+      try {
+        body = JSON.parse(body)
+      } catch (e) {
+        body = {}
+      }
+    } else if (!body) {
+      body = {}
+    }
+    
     const itemId = query.id ? parseInt(query.id) : null
 
     // GET /api/items
@@ -22,7 +35,7 @@ export default async function handler(req, res) {
 
     // POST /api/items
     if (method === 'POST') {
-      const itemData = typeof body === 'string' ? JSON.parse(body) : body
+      const itemData = body
       const newItem = new Item({
         ...itemData,
         id: itemData.id || Date.now()
@@ -33,7 +46,7 @@ export default async function handler(req, res) {
 
     // PUT /api/items/:id
     if (method === 'PUT' && itemId) {
-      const updatedData = typeof body === 'string' ? JSON.parse(body) : body
+      const updatedData = body
       const updatedItem = await Item.findOneAndUpdate(
         { id: itemId },
         updatedData,

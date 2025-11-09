@@ -45,7 +45,12 @@ export const saveInvoice = async (invoiceData, isUpdate = false) => {
     }
   } catch (error) {
     console.error('Error saving invoice:', error)
-    return false
+    console.error('API Base URL:', API_BASE_URL)
+    console.error('Error details:', {
+      message: error.message,
+      stack: error.stack
+    })
+    throw error // Re-throw to let the component handle it
   }
 }
 

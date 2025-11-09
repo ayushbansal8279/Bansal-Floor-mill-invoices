@@ -11,7 +11,20 @@ export default async function handler(req, res) {
 
   try {
     await connectDB()
-    const { method, body, query } = req
+    const { method, query } = req
+    
+    // Parse body - Vercel may send it as a string or already parsed
+    let body = req.body
+    if (typeof body === 'string' && body.length > 0) {
+      try {
+        body = JSON.parse(body)
+      } catch (e) {
+        body = {}
+      }
+    } else if (!body) {
+      body = {}
+    }
+    
     const invoiceNumber = query.invoiceNumber
 
     // GET /api/invoices/:invoiceNumber
@@ -26,7 +39,7 @@ export default async function handler(req, res) {
 
     // PUT /api/invoices/:invoiceNumber
     if (method === 'PUT') {
-      const updatedData = typeof body === 'string' ? JSON.parse(body) : body
+      const updatedData = body
       
       const existingInvoice = await Invoice.findOne({ invoiceNumber })
       if (!existingInvoice) {
@@ -62,4 +75,3 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: error.message || 'Internal server error' })
   }
 }
-
