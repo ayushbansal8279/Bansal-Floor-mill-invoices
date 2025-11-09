@@ -1,0 +1,5 @@
+{
+  "spreadsheetId": "YOUR_GOOGLE_SHEET_ID_HERE",
+  "serviceAccountKey": "service-account-key.json",
+  "credentials": null
+}
