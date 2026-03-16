@@ -382,5 +382,25 @@
   .invoices-table td {
     padding: 6px 4px;
   }
+
+  .date-filters {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.date-filters input {
+  padding: 10px;
+  border: 2px solid #e9ecef;
+  border-radius: 6px;
+  font-size: 0.9rem;
+}
+
+.date-filters input:focus {
+  border-color: #3498db;
+  outline: none;
+}
+
+
 }
 
