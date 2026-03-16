@@ -5,6 +5,7 @@ import toast from 'react-hot-toast'
 import { getItems } from '../utils/itemStorage'
 import { getNextInvoiceNumber, saveInvoice, updateInvoice } from '../utils/invoiceStorage'
 import { saveCompany, getCompanySuggestions } from '../utils/companyStorage'
+import { ReactTransliterate } from 'react-transliterate'
 import './InvoiceForm.css'
 
 const InvoiceForm = ({ onGenerate, initialData = null, isEditMode = false }) => {
@@ -16,7 +17,6 @@ const InvoiceForm = ({ onGenerate, initialData = null, isEditMode = false }) => 
     fromAddress: 'Gulaothi',
     fromEmail: '',
     toName: '',
-    toNameHindi: '',
     toAddress: '',
     toVehicle: '',
     invoiceNumber: '',
@@ -42,7 +42,12 @@ const InvoiceForm = ({ onGenerate, initialData = null, isEditMode = false }) => 
   useEffect(() => {
     if (initialData && isEditMode) {
       // Restore form data when editing existing invoice
-      setInvoiceInfo(initialData)
+      const data = { ...initialData }
+      if (data.toCompanyLang === 'hindi' && data.toNameHindi) {
+        data.toName = data.toNameHindi
+      }
+      delete data.toNameHindi
+      setInvoiceInfo(data)
       setCompanyNameLang(initialData.companyNameLang || 'hindi')
       setToCompanyLang(initialData.toCompanyLang || 'english')
       setTaxRate(initialData.taxRate || 0)
@@ -431,31 +436,7 @@ const InvoiceForm = ({ onGenerate, initialData = null, isEditMode = false }) => 
             <select
               value={toCompanyLang}
               onChange={(e) => {
-                const newLang = e.target.value
-                // Get the currently displayed value (before language change)
-                const currentDisplayedValue = toCompanyLang === 'hindi' 
-                  ? invoiceInfo.toNameHindi 
-                  : invoiceInfo.toName
-                
-                // Auto-convert name when language changes - copy current displayed value to the other field
-                if (newLang === 'hindi') {
-                  // Switching to Hindi - copy current displayed value (English) to Hindi field
-                  if (currentDisplayedValue) {
-                    setInvoiceInfo({ 
-                      ...invoiceInfo, 
-                      toNameHindi: currentDisplayedValue 
-                    })
-                  }
-                } else {
-                  // Switching to English - copy current displayed value (Hindi) to English field
-                  if (currentDisplayedValue) {
-                    setInvoiceInfo({ 
-                      ...invoiceInfo, 
-                      toName: currentDisplayedValue 
-                    })
-                  }
-                }
-                setToCompanyLang(newLang)
+                setToCompanyLang(e.target.value)
               }}
               className="lang-select"
             >
@@ -467,32 +448,33 @@ const InvoiceForm = ({ onGenerate, initialData = null, isEditMode = false }) => 
         <div className="form-group">
           <label>Name/Company</label>
           <div className="autocomplete-wrapper" ref={suggestionsRef}>
-            <input
-              type="text"
-              value={toCompanyLang === 'hindi' ? invoiceInfo.toNameHindi : invoiceInfo.toName}
-              onChange={(e) => {
-                const value = e.target.value
-                if (toCompanyLang === 'hindi') {
-                  setInvoiceInfo({ ...invoiceInfo, toNameHindi: value })
-                } else {
-                  handleToNameChange(value)
-                }
-              }}
-              onFocus={async () => {
-                if (invoiceInfo.toName) {
-                  try {
-                    const suggestions = await getCompanySuggestions(invoiceInfo.toName)
-                    setCompanySuggestions(suggestions)
-                    setShowSuggestions(suggestions.length > 0)
-                  } catch (error) {
-                    console.error('Error getting suggestions:', error)
+            {toCompanyLang === 'hindi' ? (
+              <ReactTransliterate
+                value={invoiceInfo.toName}
+                onChangeText={(text) => setInvoiceInfo({ ...invoiceInfo, toName: text })}
+                lang="hi"
+                required
+              />
+            ) : (
+              <input
+                type="text"
+                value={invoiceInfo.toName}
+                onChange={(e) => handleToNameChange(e.target.value)}
+                onFocus={async () => {
+                  if (invoiceInfo.toName) {
+                    try {
+                      const suggestions = await getCompanySuggestions(invoiceInfo.toName)
+                      setCompanySuggestions(suggestions)
+                      setShowSuggestions(suggestions.length > 0)
+                    } catch (error) {
+                      console.error('Error getting suggestions:', error)
+                    }
                   }
-                }
-              }}
-              required
-              className={toCompanyLang === 'hindi' ? 'hindi-input' : ''}
-            />
-            {showSuggestions && companySuggestions.length > 0 && (
+                }}
+                required
+              />
+            )}
+            {showSuggestions && companySuggestions.length > 0 && toCompanyLang !== 'hindi' && (
               <div className="suggestions-dropdown">
                 {companySuggestions.map((suggestion, idx) => (
                   <div
