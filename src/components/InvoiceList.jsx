@@ -6,12 +6,17 @@ import { getInvoices, deleteInvoice } from "../utils/invoiceStorage";
 import InvoicePreview from "./InvoicePreview";
 import "./InvoiceList.css";
 
+import * as XLSX from "xlsx";
+import { saveAs } from "file-saver";
+
 const InvoiceList = ({ onViewInvoice, onEditInvoice }) => {
   const [invoices, setInvoices] = useState([]);
   const [filteredInvoices, setFilteredInvoices] = useState([]);
+
   const [searchTerm, setSearchTerm] = useState("");
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
+
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedInvoice, setSelectedInvoice] = useState(null);
   const [pageDirection, setPageDirection] = useState(0);
@@ -47,8 +52,7 @@ const InvoiceList = ({ onViewInvoice, onEditInvoice }) => {
         (inv) =>
           inv.invoiceNumber.toLowerCase().includes(term) ||
           inv.toName?.toLowerCase().includes(term) ||
-          inv.fromName?.toLowerCase().includes(term) ||
-          inv.invoiceDate?.includes(term),
+          inv.fromName?.toLowerCase().includes(term),
       );
     }
 
@@ -68,8 +72,40 @@ const InvoiceList = ({ onViewInvoice, onEditInvoice }) => {
     setCurrentPage(1);
   };
 
+  const exportToExcel = () => {
+    if (filteredInvoices.length === 0) {
+      toast.error("No invoices to export");
+      return;
+    }
+
+    const data = filteredInvoices.map((inv) => ({
+      "Invoice Number": inv.invoiceNumber,
+      Date: formatDate(inv.invoiceDate),
+      "Party Name": inv.toName || "",
+      "Amount (₹)": inv.total || 0,
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(data);
+    const workbook = XLSX.utils.book_new();
+
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Invoices");
+
+    const buffer = XLSX.write(workbook, {
+      bookType: "xlsx",
+      type: "array",
+    });
+
+    const fileData = new Blob([buffer], {
+      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    });
+
+    saveAs(fileData, "Invoices.xlsx");
+  };
+
   const totalPages = Math.ceil(filteredInvoices.length / itemsPerPage);
+
   const startIndex = (currentPage - 1) * itemsPerPage;
+
   const paginatedInvoices = filteredInvoices.slice(
     startIndex,
     startIndex + itemsPerPage,
@@ -84,6 +120,7 @@ const InvoiceList = ({ onViewInvoice, onEditInvoice }) => {
 
   const formatDate = (dateString) => {
     if (!dateString) return "";
+
     const date = new Date(dateString);
 
     return date.toLocaleDateString("en-IN", {
@@ -113,7 +150,6 @@ const InvoiceList = ({ onViewInvoice, onEditInvoice }) => {
               if (success) {
                 await loadInvoices();
                 setSelectedInvoice(null);
-
                 toast.success("Invoice deleted successfully!");
               } else {
                 toast.error("Failed to delete invoice");
@@ -137,46 +173,55 @@ const InvoiceList = ({ onViewInvoice, onEditInvoice }) => {
     >
       <div className="invoice-list-header">
         <h2>All Invoices</h2>
-
-        <div className="search-box">
-          <FiSearch />
-
-          <input
-            type="text"
-            placeholder="Search by invoice number, party name..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-        </div>
       </div>
 
-      {/* Date Filters */}
+      <div className="filters-bar">
+        <div className="filters-left">
+          <div className="search-box">
+            <FiSearch />
+            <input
+              type="text"
+              placeholder="Search invoice / party..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
 
-      <div className="date-filters">
-        <input
-          type="date"
-          value={fromDate}
-          onChange={(e) => setFromDate(e.target.value)}
-        />
+          <div className="date-input">
+            <span>From</span>
+            <input
+              type="date"
+              value={fromDate}
+              onChange={(e) => setFromDate(e.target.value)}
+            />
+          </div>
 
-        <span>to</span>
+          <div className="date-input">
+            <span>To</span>
+            <input
+              type="date"
+              value={toDate}
+              onChange={(e) => setToDate(e.target.value)}
+            />
+          </div>
+        </div>
 
-        <input
-          type="date"
-          value={toDate}
-          onChange={(e) => setToDate(e.target.value)}
-        />
+        <div className="filters-right">
+          <button
+            className="clear-filters"
+            onClick={() => {
+              setSearchTerm("");
+              setFromDate("");
+              setToDate("");
+            }}
+          >
+            Clear
+          </button>
 
-        <button
-          className="clear-filters"
-          onClick={() => {
-            setSearchTerm("");
-            setFromDate("");
-            setToDate("");
-          }}
-        >
-          Clear
-        </button>
+          <button className="export-btn" onClick={exportToExcel}>
+            Export Excel
+          </button>
+        </div>
       </div>
 
       <div className="invoices-stats">
@@ -211,7 +256,7 @@ const InvoiceList = ({ onViewInvoice, onEditInvoice }) => {
               {paginatedInvoices.length === 0 ? (
                 <tr>
                   <td colSpan="5" className="no-invoices">
-                    {searchTerm ? "No invoices found" : "No invoices yet"}
+                    No invoices found
                   </td>
                 </tr>
               ) : (
@@ -240,7 +285,6 @@ const InvoiceList = ({ onViewInvoice, onEditInvoice }) => {
                         onClick={() => setSelectedInvoice(invoice)}
                         whileHover={{ scale: 1.1 }}
                         whileTap={{ scale: 0.9 }}
-                        title="View Invoice"
                       >
                         <FiEye />
                         <span className="btn-text">View</span>
@@ -256,27 +300,25 @@ const InvoiceList = ({ onViewInvoice, onEditInvoice }) => {
 
       {totalPages > 1 && (
         <div className="pagination">
-          <motion.button
+          <button
             onClick={() => handlePageChange(currentPage - 1)}
             disabled={currentPage === 1}
             className="pagination-btn"
           >
-            <FiChevronLeft />
-            Previous
-          </motion.button>
+            <FiChevronLeft /> Previous
+          </button>
 
           <span className="page-info">
             Page {currentPage} of {totalPages}
           </span>
 
-          <motion.button
+          <button
             onClick={() => handlePageChange(currentPage + 1)}
             disabled={currentPage === totalPages}
             className="pagination-btn"
           >
-            Next
-            <FiChevronRight />
-          </motion.button>
+            Next <FiChevronRight />
+          </button>
         </div>
       )}
     </motion.div>
