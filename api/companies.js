@@ -2,7 +2,7 @@ import { connectDB, Company } from '../src/utils/mongodb.js'
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*')
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type')
 
   if (req.method === 'OPTIONS') {
@@ -12,8 +12,8 @@ export default async function handler(req, res) {
   try {
     await connectDB()
     const { query, method } = req
-    
-    // Parse body - Vercel may send it as a string or already parsed
+
+    // Parse body safely
     let body = req.body
     if (typeof body === 'string' && body.length > 0) {
       try {
@@ -24,70 +24,71 @@ export default async function handler(req, res) {
     } else if (!body) {
       body = {}
     }
-    
-    const isSuggestions = query.path === 'suggestions'
-    const searchTerm = query.q || ''
 
-    // GET /api/companies/suggestions
-    if (method === 'GET' && isSuggestions) {
-      let companies
-      if (!searchTerm) {
-        companies = await Company.find({}).limit(10)
-      } else {
-        const term = searchTerm.toLowerCase()
-        companies = await Company.find({
-          $or: [
-            { name: { $regex: term, $options: 'i' } },
-            { nameHindi: { $regex: term, $options: 'i' } }
-          ]
-        }).limit(10)
-      }
-      const companyNames = companies.map(c => c.name)
-      return res.status(200).json(companyNames)
-    }
+    const companyId = query.id ? parseInt(query.id) : null
 
+    // =======================
     // GET /api/companies
-    if (method === 'GET') {
-      const companies = await Company.find({})
-      const companyNames = companies.map(c => c.name)
-      return res.status(200).json(companyNames)
+    // =======================
+    if (method === 'GET' && !companyId) {
+      const companies = await Company.find({}).sort({ id: 1 })
+      return res.status(200).json(companies)
     }
 
+    // =======================
     // POST /api/companies
+    // =======================
     if (method === 'POST') {
-      let companyName = body
-      // If body is an object, try to get the value
-      if (typeof companyName === 'object' && companyName !== null) {
-        companyName = companyName.name || companyName.value || JSON.stringify(companyName)
+      if (!body.name || !body.name.trim()) {
+        return res.status(400).json({ error: 'Name is required' })
       }
-      // If it's still an object, stringify it
-      if (typeof companyName === 'object') {
-        companyName = JSON.stringify(companyName)
-      }
-      
-      if (!companyName || !companyName.trim()) {
-        return res.status(200).json({ success: true, message: 'Empty company name' })
-      }
-      
-      const existing = await Company.findOne({ name: companyName })
-      if (existing) {
-        const allCompanies = await Company.find({})
-        const companyNames = allCompanies.map(c => c.name)
-        return res.status(200).json({ success: true, companies: companyNames, message: 'Company already exists' })
-      }
-      
-      const newCompany = new Company({ name: companyName.trim() })
+
+      const newCompany = new Company({
+        id: Date.now(),
+        name: body.name.trim(),
+        nameHindi: body.nameHindi || "",
+        address: body.address || ""
+      })
+
       await newCompany.save()
-      
-      const allCompanies = await Company.find({})
-      const companyNames = allCompanies.map(c => c.name)
-      return res.status(200).json({ success: true, companies: companyNames })
+
+      return res.status(200).json(newCompany.toObject())
+    }
+
+    // =======================
+    // PUT /api/companies/:id
+    // =======================
+    if (method === 'PUT' && companyId) {
+      const updatedCompany = await Company.findOneAndUpdate(
+        { id: companyId },
+        body,
+        { new: true }
+      )
+
+      if (!updatedCompany) {
+        return res.status(404).json({ error: 'Company not found' })
+      }
+
+      return res.status(200).json(updatedCompany.toObject())
+    }
+
+    // =======================
+    // DELETE /api/companies/:id
+    // =======================
+    if (method === 'DELETE' && companyId) {
+      const result = await Company.findOneAndDelete({ id: companyId })
+
+      if (!result) {
+        return res.status(404).json({ error: 'Company not found' })
+      }
+
+      return res.status(200).json({ success: true })
     }
 
     return res.status(405).json({ error: 'Method not allowed' })
+
   } catch (error) {
     console.error('Error:', error)
     return res.status(500).json({ error: error.message || 'Internal server error' })
   }
 }
-
