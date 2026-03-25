@@ -1,113 +1,94 @@
-import { connectDB, Company } from '../../src/utils/mongodb.js'
+import { connectDB, Company } from '../src/utils/mongodb.js'
 
-export const handler = async (event, context) => {
-  const headers = {
-    'Content-Type': 'application/json',
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type'
-  }
+export default async function handler(req, res) {
+  res.setHeader('Access-Control-Allow-Origin', '*')
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type')
 
-  if (event.httpMethod === 'OPTIONS') {
-    return {
-      statusCode: 200,
-      headers,
-      body: ''
-    }
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end()
   }
 
   try {
     await connectDB()
-    const path = event.path.replace('/api/companies', '').replace(/^\//, '')
-    const isSuggestions = path === 'suggestions'
-    const url = new URL(event.rawUrl || `http://localhost${event.path}${event.rawQuery ? '?' + event.rawQuery : ''}`)
-    const searchTerm = url.searchParams.get('q') || ''
+    const { query, method } = req
 
-    // GET /api/companies/suggestions
-    if (event.httpMethod === 'GET' && isSuggestions) {
-      let companies
-      if (!searchTerm) {
-        companies = await Company.find({}).limit(10)
-      } else {
-        const term = searchTerm.toLowerCase()
-        companies = await Company.find({
-          $or: [
-            { name: { $regex: term, $options: 'i' } },
-            { nameHindi: { $regex: term, $options: 'i' } }
-          ]
-        }).limit(10)
-      }
-      const companyNames = companies.map(c => c.name)
-      return {
-        statusCode: 200,
-        headers,
-        body: JSON.stringify(companyNames)
-      }
-    }
-
-    // GET /api/companies
-    if (event.httpMethod === 'GET') {
-      const companies = await Company.find({})
-      const companyNames = companies.map(c => c.name)
-      return {
-        statusCode: 200,
-        headers,
-        body: JSON.stringify(companyNames)
-      }
-    }
-
-    // POST /api/companies
-    if (event.httpMethod === 'POST') {
-      let companyName = event.body
+    // Parse body safely
+    let body = req.body
+    if (typeof body === 'string' && body.length > 0) {
       try {
-        companyName = JSON.parse(event.body)
+        body = JSON.parse(body)
       } catch (e) {
-        // If not JSON, use as-is
+        body = {}
       }
-      
-      if (!companyName || !companyName.trim()) {
-        return {
-          statusCode: 200,
-          headers,
-          body: JSON.stringify({ success: true, message: 'Empty company name' })
-        }
-      }
-      
-      const existing = await Company.findOne({ name: companyName })
-      if (existing) {
-        const allCompanies = await Company.find({})
-        const companyNames = allCompanies.map(c => c.name)
-        return {
-          statusCode: 200,
-          headers,
-          body: JSON.stringify({ success: true, companies: companyNames, message: 'Company already exists' })
-        }
-      }
-      
-      const newCompany = new Company({ name: companyName.trim() })
-      await newCompany.save()
-      
-      const allCompanies = await Company.find({})
-      const companyNames = allCompanies.map(c => c.name)
-      return {
-        statusCode: 200,
-        headers,
-        body: JSON.stringify({ success: true, companies: companyNames })
-      }
+    } else if (!body) {
+      body = {}
     }
 
-    return {
-      statusCode: 405,
-      headers,
-      body: JSON.stringify({ error: 'Method not allowed' })
+    const companyId = query.id ? parseInt(query.id) : null
+
+    // =======================
+    // GET /api/companies
+    // =======================
+    if (method === 'GET' && !companyId) {
+      const companies = await Company.find({}).sort({ id: 1 })
+      return res.status(200).json(companies)
     }
+
+    // =======================
+    // POST /api/companies
+    // =======================
+    if (method === 'POST') {
+      if (!body.name || !body.name.trim()) {
+        return res.status(400).json({ error: 'Name is required' })
+      }
+
+      const newCompany = new Company({
+        id: Date.now(),
+        name: body.name.trim(),
+        nameHindi: body.nameHindi || "",
+        address: body.address || ""
+      })
+
+      await newCompany.save()
+
+      return res.status(200).json(newCompany.toObject())
+    }
+
+    // =======================
+    // PUT /api/companies/:id
+    // =======================
+    if (method === 'PUT' && companyId) {
+      const updatedCompany = await Company.findOneAndUpdate(
+        { id: companyId },
+        body,
+        { new: true }
+      )
+
+      if (!updatedCompany) {
+        return res.status(404).json({ error: 'Company not found' })
+      }
+
+      return res.status(200).json(updatedCompany.toObject())
+    }
+
+    // =======================
+    // DELETE /api/companies/:id
+    // =======================
+    if (method === 'DELETE' && companyId) {
+      const result = await Company.findOneAndDelete({ id: companyId })
+
+      if (!result) {
+        return res.status(404).json({ error: 'Company not found' })
+      }
+
+      return res.status(200).json({ success: true })
+    }
+
+    return res.status(405).json({ error: 'Method not allowed' })
+
   } catch (error) {
     console.error('Error:', error)
-    return {
-      statusCode: 500,
-      headers,
-      body: JSON.stringify({ error: error.message || 'Internal server error' })
-    }
+    return res.status(500).json({ error: error.message || 'Internal server error' })
   }
 }
-
