@@ -52,7 +52,7 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  box-shadow: 
+  box-shadow:
     0 6px 20px rgba(231, 76, 60, 0.5),
     0 3px 10px rgba(231, 76, 60, 0.4),
     inset 0 1px 0 rgba(255, 255, 255, 0.2);
@@ -64,13 +64,18 @@
 }
 
 .btn-delete-invoice::before {
-  content: '';
+  content: "";
   position: absolute;
   top: 0;
   left: -100%;
   width: 100%;
   height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.4),
+    transparent
+  );
   transition: left 0.6s;
 }
 
@@ -81,7 +86,7 @@
 .btn-delete-invoice:hover {
   background: linear-gradient(135deg, #c0392b 0%, #a93226 50%, #922b21 100%);
   transform: translateY(-3px) scale(1.08);
-  box-shadow: 
+  box-shadow:
     0 10px 30px rgba(231, 76, 60, 0.7),
     0 5px 15px rgba(231, 76, 60, 0.5),
     inset 0 1px 0 rgba(255, 255, 255, 0.3),
@@ -91,7 +96,7 @@
 
 .btn-delete-invoice:active {
   transform: translateY(-1px) scale(1.02);
-  box-shadow: 
+  box-shadow:
     0 4px 15px rgba(231, 76, 60, 0.5),
     0 2px 8px rgba(231, 76, 60, 0.4);
 }
@@ -103,14 +108,15 @@
 }
 
 @keyframes pulse-glow {
-  0%, 100% {
-    box-shadow: 
+  0%,
+  100% {
+    box-shadow:
       0 6px 20px rgba(231, 76, 60, 0.5),
       0 3px 10px rgba(231, 76, 60, 0.4),
       inset 0 1px 0 rgba(255, 255, 255, 0.2);
   }
   50% {
-    box-shadow: 
+    box-shadow:
       0 8px 25px rgba(231, 76, 60, 0.7),
       0 4px 15px rgba(231, 76, 60, 0.5),
       inset 0 1px 0 rgba(255, 255, 255, 0.2),
@@ -119,13 +125,21 @@
 }
 
 @keyframes trash-shake {
-  0%, 100% { 
+  0%,
+  100% {
     transform: rotate(0deg) translateY(0);
   }
-  10%, 30%, 50%, 70%, 90% { 
+  10%,
+  30%,
+  50%,
+  70%,
+  90% {
     transform: rotate(-8deg) translateY(-2px);
   }
-  20%, 40%, 60%, 80% { 
+  20%,
+  40%,
+  60%,
+  80% {
     transform: rotate(8deg) translateY(-2px);
   }
 }
@@ -369,7 +383,6 @@
   width: 20%;
   text-align: right;
   font-weight: 600;
-  color: #3498db;
 }
 
 .invoice-totals {
@@ -789,7 +802,6 @@
     background: #3498db !important;
     color: white !important;
     /* Prevent header from repeating on page breaks */
-    -webkit-region-break-inside: avoid !important;
   }
 
   body.print-split-view .invoice-preview.split-view .items-table thead tr {
@@ -890,10 +902,8 @@
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
     /* Use solid color for print as gradients may not print correctly */
-    background: #3498db !important;
     color: white !important;
     /* Prevent header from repeating on page breaks */
-    -webkit-region-break-inside: avoid !important;
   }
 
   .invoice-preview .items-table thead tr {
@@ -948,7 +958,6 @@
     display: table-header-group !important;
     page-break-after: avoid !important;
     page-break-inside: avoid !important;
-    -webkit-region-break-inside: avoid !important;
     /* Ensure background prints correctly */
     background: #3498db !important;
     -webkit-print-color-adjust: exact !important;
@@ -1000,11 +1009,11 @@
   .invoice-preview {
     padding: 30px;
   }
-  
+
   .invoice-parties {
     gap: 30px;
   }
-  
+
   .items-table {
     font-size: 0.9rem;
   }
@@ -1082,39 +1091,39 @@
   .invoice-preview {
     padding: 15px;
   }
-  
+
   .invoice-title-section h1 {
     font-size: 1.5rem;
   }
-  
+
   .items-table {
     font-size: 0.75rem;
   }
-  
+
   .items-table th,
   .items-table td {
     padding: 8px 5px;
   }
-  
+
   .party-name {
     font-size: 1rem;
   }
-  
+
   .hindi-text {
     font-size: 1.1rem;
   }
-  
+
   .invoice-actions {
     flex-direction: column;
     align-items: stretch;
   }
-  
+
   .back-buttons-group,
   .action-buttons {
     width: 100%;
     flex-direction: column;
   }
-  
+
   .btn-back,
   .btn-edit-invoice,
   .btn-delete-invoice,
@@ -1124,13 +1133,13 @@
     width: 100%;
     justify-content: center;
   }
-  
+
   .split-invoice-wrapper-horizontal {
     grid-template-columns: 1fr;
     gap: 15px;
     min-height: auto;
   }
-  
+
   .invoice-preview.split-view {
     width: 100%;
     height: auto;
@@ -1138,7 +1147,7 @@
     border: 2px solid #3498db;
     margin-bottom: 0;
   }
-  
+
   .invoice-preview.split-view:nth-child(2) {
     border-left: none;
     border-top: 2px solid #3498db;
@@ -1150,22 +1159,326 @@
   .invoice-preview {
     padding: 12px;
   }
-  
+
   .invoice-title-section h1 {
     font-size: 1.3rem;
   }
-  
+
   .items-table {
     font-size: 0.7rem;
   }
-  
+
   .items-table th,
   .items-table td {
     padding: 6px 4px;
   }
-  
+
   .signature-section {
     grid-template-columns: 1fr;
     gap: 20px;
+  }
+}
+/* ================= MOBILE ================= */
+
+@media (max-width: 768px) {
+  .invoice-preview {
+    padding: 20px;
+    overflow-x: hidden;
+  }
+
+  .invoice-header {
+    flex-direction: column;
+    gap: 20px;
+    align-items: flex-start;
+  }
+
+  .invoice-title-section h1 {
+    font-size: 2rem;
+  }
+
+  .invoice-dates {
+    text-align: left;
+  }
+
+  .invoice-parties {
+    grid-template-columns: 1fr;
+    gap: 30px;
+  }
+
+  /* TEXT FIX */
+  .party-name,
+  .party-address,
+  .party-email {
+    word-break: break-word;
+  }
+
+  /* BUTTONS */
+  .invoice-actions,
+  .action-buttons,
+  .back-buttons-group {
+    width: 100%;
+    flex-direction: column;
+  }
+
+  .btn-back,
+  .btn-print,
+  .btn-export,
+  .btn-edit-invoice,
+  .btn-delete-invoice,
+  .btn-split {
+    width: 100%;
+    justify-content: center;
+  }
+
+  /* ================= TABLE → CARD ================= */
+
+  .items-table thead {
+    display: none;
+  }
+
+  .items-table,
+  .items-table tbody,
+  .items-table tr,
+  .items-table td {
+    display: block;
+    width: 100%;
+  }
+
+  .items-table tr {
+    margin-bottom: 12px;
+    padding: 10px;
+    border: 1px solid #e9ecef;
+    border-radius: 6px;
+  }
+
+  .items-table td {
+    display: flex;
+    justify-content: space-between;
+    padding: 6px 0;
+    border: none;
+  }
+
+  .items-table td::before {
+    font-weight: 600;
+  }
+
+  .col-item::before {
+    content: "Item";
+  }
+  .col-rate::before {
+    content: "Rate";
+  }
+  .col-quantity::before {
+    content: "Qty";
+  }
+  .col-amount::before {
+    content: "Amount";
+  }
+
+  /* TOTAL */
+  .invoice-totals {
+    justify-content: center;
+  }
+
+  .totals-section {
+    width: 100%;
+  }
+
+  /* SPLIT VIEW */
+  .split-invoice-wrapper-horizontal {
+    grid-template-columns: 1fr;
+  }
+
+  .invoice-preview.split-view:nth-child(2) {
+    border-left: none;
+    border-top: 2px solid #3498db;
+    margin-top: 15px;
+  }
+}
+@media (max-width: 480px) {
+  .invoice-preview {
+    padding: 15px;
+  }
+
+  .invoice-title-section h1 {
+    font-size: 1.5rem;
+  }
+
+  .items-table {
+    font-size: 0.75rem;
+  }
+
+  .items-table th,
+  .items-table td {
+    padding: 8px 5px;
+  }
+
+  .signature-section {
+    gap: 15px;
+  }
+}
+/* ================= PRINT ================= */
+
+@media print {
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color: #000 !important;
+    -webkit-text-fill-color: #000 !important;
+    background: transparent !important;
+    background-image: none !important;
+    box-shadow: none !important;
+  }
+
+  /* REMOVE UI */
+  button,
+  .invoice-actions,
+  .split-invoice-actions {
+    display: none !important;
+  }
+
+  /* STRUCTURE */
+  .invoice-preview {
+    padding: 15px;
+    margin: 0;
+    box-shadow: none;
+    border: 1px solid #000;
+  }
+
+  .invoice-header {
+    border-bottom: 2px solid #000;
+  }
+
+  .party-section h3 {
+    border-bottom: 1px solid #000;
+  }
+
+  /* ✅ FORCE NORMAL TABLE */
+  .items-table {
+    display: table !important;
+    width: 100% !important;
+    border-collapse: collapse !important;
+  }
+
+  .items-table thead {
+    display: table-header-group !important;
+  }
+
+  .items-table tbody {
+    display: table-row-group !important;
+  }
+
+  .items-table tr {
+    display: table-row !important;
+  }
+
+  .items-table th,
+  .items-table td {
+    display: table-cell !important;
+  }
+
+  .items-table td::before {
+    content: none !important;
+    display: none !important;
+  }
+
+  /* ✅ HEADER STYLE */
+  .items-table thead,
+  .items-table th {
+    background: #f2f2f2 !important;
+    color: #000 !important;
+  }
+
+  /* TOTAL */
+  .totals-section {
+    background: #f7f7f7 !important;
+    border: 1px solid #000;
+  }
+
+  .total-row.total-final {
+    border-top: 2px solid #000;
+    font-weight: 800;
+  }
+
+  /* SIGNATURE */
+  .signature-line {
+    border-bottom: 2px solid #000;
+  }
+
+  @page {
+    margin: 0.5cm;
+    size: A4 portrait;
+  }
+  /* 🔥 STEP 1: KILL ALL BACKGROUND COLORS + GRADIENTS */
+  * {
+    background: transparent !important;
+    background-image: none !important;
+  }
+
+  /* 🔥 STEP 2: FORCE HEADER LIGHT GREY (override everything) */
+  .invoice-preview .items-table thead,
+  .invoice-preview .items-table thead *,
+  .items-table thead,
+  .items-table thead *,
+  table thead,
+  table thead * {
+    background: #f2f2f2 !important;
+    background-image: none !important;
+    color: #000 !important;
+  }
+
+  /* 🔥 STEP 3: REMOVE ANY INLINE OR INHERITED GRADIENT */
+  [style*="gradient"],
+  [style*="#3498db"] {
+    background: transparent !important;
+    background-image: none !important;
+    color: #000 !important;
+  }
+
+  /* 🔥 STEP 4: EXTRA FORCE FOR CHROME PRINT ENGINE */
+  .items-table thead {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+}
+@media print {
+
+  /* 🔥 HARD RESET — REMOVE ALL MOBILE LABELS */
+  .items-table td::before,
+  .col-item::before,
+  .col-rate::before,
+  .col-quantity::before,
+  .col-amount::before {
+    content: "" !important;
+    display: none !important;
+  }
+
+  /* 🔥 FORCE CLEAN TABLE */
+  .items-table,
+  .items-table * {
+    display: revert !important;
+  }
+
+  .items-table {
+    display: table !important;
+    width: 100% !important;
+    border-collapse: collapse !important;
+  }
+
+  .items-table thead {
+    display: table-header-group !important;
+  }
+
+  .items-table tbody {
+    display: table-row-group !important;
+  }
+
+  .items-table tr {
+    display: table-row !important;
+  }
+
+  .items-table th,
+  .items-table td {
+    display: table-cell !important;
   }
 }
