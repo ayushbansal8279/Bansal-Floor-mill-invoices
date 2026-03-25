@@ -65,7 +65,7 @@ export default async function handler(req, res) {
         companyName = JSON.stringify(companyName)
       }
       
-      if (!companyName || !name.trim()) {
+      if (!companyName || !companyName.trim()) {
         return res.status(200).json({ success: true, message: 'Empty company name' })
       }
       
@@ -76,7 +76,7 @@ export default async function handler(req, res) {
         return res.status(200).json({ success: true, companies: companyNames, message: 'Company already exists' })
       }
       
-      const newCompany = new Company({ name: name.trim() })
+      const newCompany = new Company({ name: companyName.trim() })
       await newCompany.save()
       
       const allCompanies = await Company.find({})
