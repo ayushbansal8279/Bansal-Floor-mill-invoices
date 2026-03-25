@@ -84,8 +84,7 @@ const itemSchema = new mongoose.Schema({
 const companySchema = new mongoose.Schema({
   name: { type: String, required: true, unique: true },
   nameHindi: { type: String, default: '' },
-  address: { type: String, default: '' },
-  vehicle: { type: String, default: '' }
+  address: { type: String, default: '' }
 })
 
 // Create models

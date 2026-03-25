@@ -267,29 +267,33 @@ const InvoiceList = ({ onViewInvoice, onEditInvoice }) => {
                     animate={{ opacity: 1, y: 0 }}
                     whileHover={{ backgroundColor: "#f8f9fa" }}
                   >
-                    <td className="invoice-number-cell">
-                      {invoice.invoiceNumber}
-                    </td>
+                    <td className="invoice-number-cell" data-label="Invoice #">
+  {invoice.invoiceNumber}
+</td>
 
-                    <td>{formatDate(invoice.invoiceDate)}</td>
+<td data-label="Date">
+  {formatDate(invoice.invoiceDate)}
+</td>
 
-                    <td>{invoice.toName || "N/A"}</td>
+<td data-label="Party">
+  {invoice.toName || "N/A"}
+</td>
 
-                    <td className="total-cell">
-                      ₹{invoice.total?.toFixed(2) || "0.00"}
-                    </td>
+<td className="total-cell" data-label="Total">
+  ₹{invoice.total?.toFixed(2) || "0.00"}
+</td>
 
-                    <td className="actions-cell">
-                      <motion.button
-                        className="btn-view"
-                        onClick={() => setSelectedInvoice(invoice)}
-                        whileHover={{ scale: 1.1 }}
-                        whileTap={{ scale: 0.9 }}
-                      >
-                        <FiEye />
-                        <span className="btn-text">View</span>
-                      </motion.button>
-                    </td>
+<td className="actions-cell" data-label="Actions">
+  <motion.button
+    className="btn-view"
+    onClick={() => setSelectedInvoice(invoice)}
+    whileHover={{ scale: 1.1 }}
+    whileTap={{ scale: 0.9 }}
+  >
+    <FiEye />
+    <span className="btn-text">View</span>
+  </motion.button>
+</td>
                   </motion.tr>
                 ))
               )}
