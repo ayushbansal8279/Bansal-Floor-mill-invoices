@@ -6,5 +6,6 @@ export async function connectDB() {
   if (isConnected) return;
 
   await mongoose.connect(process.env.MONGO_URI);
+  console.log(MONGO_URI)
   isConnected = true;
 }
