@@ -65,7 +65,7 @@ export const handler = async (event, context) => {
         // If not JSON, use as-is
       }
       
-      if (!companyName || !companyName.trim()) {
+      if (!companyName || !name.trim()) {
         return {
           statusCode: 200,
           headers,
@@ -84,7 +84,7 @@ export const handler = async (event, context) => {
         }
       }
       
-      const newCompany = new Company({ name: companyName.trim() })
+      const newCompany = new Company({ name: name.trim() })
       await newCompany.save()
       
       const allCompanies = await Company.find({})
