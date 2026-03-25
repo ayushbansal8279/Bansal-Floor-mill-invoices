@@ -381,20 +381,41 @@ app.get('/api/companies', (req, res) => {
 // Create new company
 app.post('/api/companies', (req, res) => {
   try {
-    const companyName = req.body.name || req.body
-    const companies = readCompanies()
-    
-    if (!companies.includes(companyName) && companyName.trim()) {
-      companies.push(companyName)
-      if (writeCompanies(companies)) {
-        res.json({ success: true, companies })
-      } else {
-        res.status(500).json({ error: 'Failed to save company' })
-      }
-    } else {
-      res.json({ success: true, companies, message: 'Company already exists' })
+    console.log("post");
+    const { name, nameHindi, address } = req.body
+
+    if (!name || typeof name !== 'string' || !name.trim()) {
+      return res.status(400).json({ error: 'Name required' })
     }
+
+    const companies = readCompanies()
+
+    // prevent duplicate (case-insensitive)
+    const exists = companies.find(c => 
+      c.name.toLowerCase() === name.toLowerCase()
+    )
+
+    if (exists) {
+      return res.json({ success: true, company: exists })
+    }
+
+    const newCompany = {
+      id: Date.now(),
+      name: name.trim(),
+      nameHindi: nameHindi || '',
+      address: address || ''
+    }
+
+    companies.push(newCompany)
+
+    if (writeCompanies(companies)) {
+      res.json({ success: true, company: newCompany })
+    } else {
+      res.status(500).json({ error: 'Failed to save company' })
+    }
+
   } catch (error) {
+    console.error("🔥 COMPANY ERROR:", error)
     res.status(500).json({ error: 'Failed to create company' })
   }
 })

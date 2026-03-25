@@ -296,3 +296,77 @@
     padding: 8px;
   }
 }
+
+.invoices-table-container {
+  overflow-x: auto;
+}
+
+@media (max-width: 768px) {
+  .invoices-table thead {
+    display: none;
+  }
+
+  .invoices-table,
+  .invoices-table tbody,
+  .invoices-table tr,
+  .invoices-table td {
+    display: block;
+    width: 100%;
+  }
+
+  .invoices-table tr {
+    margin-bottom: 15px;
+    background: white;
+    border-radius: 10px;
+    padding: 12px;
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.08);
+  }
+
+  .invoices-table td {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px;
+    border-bottom: 1px solid #eee;
+    font-size: 0.85rem;
+  }
+
+  .invoices-table td:last-child {
+    border-bottom: none;
+  }
+
+  .invoices-table td::before {
+    content: attr(data-label);
+    font-weight: 600;
+    color: #7f8c8d;
+  }
+
+  .actions-cell {
+    justify-content: center;
+  }
+}
+
+@media (max-width: 768px) {
+
+  .filters-bar {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .filters-left {
+    width: 100%;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .filters-right {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+  }
+
+  .search-box,
+  .date-input input {
+    width: 100%;
+  }
+}
