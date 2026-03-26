@@ -1,141 +1,145 @@
-import { connectDB, Company } from '../../src/utils/mongodb.js'
+import { connectDB, Company } from "../../src/utils/mongodb.js";
 
 export const handler = async (event, context) => {
   const headers = {
-    'Content-Type': 'application/json',
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type'
-  }
+    "Content-Type": "application/json",
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type",
+  };
 
-  if (event.httpMethod === 'OPTIONS') {
+  if (event.httpMethod === "OPTIONS") {
     return {
       statusCode: 200,
       headers,
-      body: ''
-    }
+      body: "",
+    };
   }
 
   try {
-    await connectDB()
-    const path = event.path.replace('/api/companies', '').replace(/^\//, '')
-    const isSuggestions = path === 'suggestions'
-    let searchTerm = ''
+    await connectDB();
+    const path = event.path.replace("/api/companies", "").replace(/^\//, "");
+    const isSuggestions = path === "suggestions";
+    let searchTerm = "";
 
-try {
-  const url = new URL(
-    event.rawUrl || 
-    `http://localhost${event.path}${event.rawQuery ? '?' + event.rawQuery : ''}`
-  )
-  searchTerm = url.searchParams.get('q') || ''
-} catch (e) {
-  searchTerm = ''
-}
+    try {
+      const url = new URL(
+        event.rawUrl ||
+          `http://localhost${event.path}${event.rawQuery ? "?" + event.rawQuery : ""}`,
+      );
+      searchTerm = url.searchParams.get("q") || "";
+    } catch (e) {
+      searchTerm = "";
+    }
 
-// ✅ FORCE string safety
-if (typeof searchTerm !== 'string') {
-  searchTerm = ''
-}
+    // ✅ FORCE string safety
+    if (typeof searchTerm !== "string") {
+      searchTerm = "";
+    }
 
-const term = searchTerm.toLowerCase()
+    const term = searchTerm.toLowerCase();
 
     // GET /api/companies/suggestions
-    if (event.httpMethod === 'GET' && isSuggestions) {
-      let companies
+    if (event.httpMethod === "GET" && isSuggestions) {
+      let companies;
       if (!searchTerm) {
-        companies = await Company.find({}).limit(10)
+        companies = await Company.find({}).limit(10);
       } else {
-        const term = searchTerm.toLowerCase()
+        const term = searchTerm.toLowerCase();
         companies = await Company.find({
           $or: [
-            { name: { $regex: term, $options: 'i' } },
-            { nameHindi: { $regex: term, $options: 'i' } }
-          ]
-        }).limit(10)
+            { name: { $regex: term, $options: "i" } },
+            { nameHindi: { $regex: term, $options: "i" } },
+          ],
+        }).limit(10);
       }
       return {
-  statusCode: 200,
-  headers,
-  body: JSON.stringify(companies)
-}
+        statusCode: 200,
+        headers,
+        body: JSON.stringify(companies),
+      };
     }
 
     // GET /api/companies
-    if (event.httpMethod === 'GET') {
-      const companies = await Company.find({})
+    if (event.httpMethod === "GET") {
+      const companies = await Company.find({});
       return {
-  statusCode: 200,
-  headers,
-  body: JSON.stringify(companies)
-}
+        statusCode: 200,
+        headers,
+        body: JSON.stringify(companies),
+      };
     }
 
     // POST /api/companies
     // POST /api/companies
-if (event.httpMethod === 'POST') {
-  let companyName = event.body
+    // POST /api/companies
+    if (event.httpMethod === "POST") {
+      let data = {};
 
-  try {
-    companyName = JSON.parse(event.body)
-  } catch (e) {
-    // keep as string
-  }
+      try {
+        data = JSON.parse(event.body);
+      } catch (e) {
+        return {
+          statusCode: 400,
+          headers,
+          body: JSON.stringify({ error: "Invalid JSON" }),
+        };
+      }
 
-  // 👉 Handle both cases (string OR object)
-  if (typeof companyName === 'object' && companyName !== null) {
-    companyName = companyName.name || ''
-  }
+      // ✅ Safe extraction
+      const name = typeof data.name === "string" ? data.name.trim() : "";
+      const nameHindi =
+        typeof data.nameHindi === "string" ? data.nameHindi.trim() : "";
+      const address =
+        typeof data.address === "string" ? data.address.trim() : "";
 
-  if (typeof companyName !== 'string') {
-    companyName = ''
-  }
+      if (!name) {
+        return {
+          statusCode: 400,
+          headers,
+          body: JSON.stringify({ error: "Company name is required" }),
+        };
+      }
 
-  companyName = companyName.trim()
+      const existing = await Company.findOne({ name });
+      if (existing) {
+        return {
+          statusCode: 200,
+          headers,
+          body: JSON.stringify({
+            success: true,
+            company: existing,
+            message: "Company already exists",
+          }),
+        };
+      }
 
-  if (!companyName) {
-    return {
-      statusCode: 200,
-      headers,
-      body: JSON.stringify({ success: true, message: 'Empty company name' })
+      const newCompany = new Company({
+        name,
+        nameHindi,
+        address,
+      });
+
+      await newCompany.save();
+
+      return {
+        statusCode: 200,
+        headers,
+        body: JSON.stringify({ success: true, company: newCompany }),
+      };
     }
-  }
-
-  const existing = await Company.findOne({ name: companyName })
-  if (existing) {
-    const allCompanies = await Company.find({})
-    const companyNames = allCompanies.map(c => c.name)
-    return {
-      statusCode: 200,
-      headers,
-      body: JSON.stringify({ success: true, companies: companyNames, message: 'Company already exists' })
-    }
-  }
-
-  const newCompany = new Company({ name: companyName })
-  await newCompany.save()
-
-  const allCompanies = await Company.find({})
-  const companyNames = allCompanies.map(c => c.name)
-
-  return {
-    statusCode: 200,
-    headers,
-    body: JSON.stringify({ success: true, companies: companyNames })
-  }
-}
 
     return {
       statusCode: 405,
       headers,
-      body: JSON.stringify({ error: 'Method not allowed' })
-    }
+      body: JSON.stringify({ error: "Method not allowed" }),
+    };
   } catch (error) {
-    console.error('Error:', error)
+    console.error("Error:", error);
     return {
       statusCode: 500,
       headers,
-      body: JSON.stringify({ error: error.message || 'Internal server error' })
-    }
+      body: JSON.stringify({ error: error.message || "Internal server error" }),
+    };
   }
-}
-
+};
