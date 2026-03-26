@@ -4,7 +4,7 @@ export const handler = async (event, context) => {
   const headers = {
     "Content-Type": "application/json",
     "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+    "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
     "Access-Control-Allow-Headers": "Content-Type",
   };
 
@@ -20,6 +20,7 @@ export const handler = async (event, context) => {
     await connectDB();
     const path = event.path.replace("/api/companies", "").replace(/^\//, "");
     const isSuggestions = path === "suggestions";
+    const id = path && !isSuggestions ? path : null;
     let searchTerm = "";
 
     try {
@@ -63,7 +64,7 @@ export const handler = async (event, context) => {
     // GET /api/companies
     if (event.httpMethod === "GET") {
       const companies = await Company.find({});
-      console.log(companies)
+      console.log(companies);
       return {
         statusCode: 200,
         headers,
@@ -129,64 +130,78 @@ export const handler = async (event, context) => {
     }
 
     // PUT /api/companies/:id
-if (event.httpMethod === "PUT" && id) {
-  let data = {}
+    if (event.httpMethod === "PUT") {
+      if (!id) {
+        return {
+          statusCode: 400,
+          headers,
+          body: JSON.stringify({ error: "ID is required" }),
+        };
+      }
 
-  try {
-    data = JSON.parse(event.body)
-  } catch (e) {
-    return {
-      statusCode: 400,
-      headers,
-      body: JSON.stringify({ error: "Invalid JSON" }),
+      let data = {};
+
+      try {
+        data = JSON.parse(event.body);
+      } catch (e) {
+        return {
+          statusCode: 400,
+          headers,
+          body: JSON.stringify({ error: "Invalid JSON" }),
+        };
+      }
+
+      const updated = await Company.findByIdAndUpdate(
+        id,
+        {
+          ...(data.name && { name: data.name.trim() }),
+          ...(data.nameHindi && { nameHindi: data.nameHindi.trim() }),
+          ...(data.address && { address: data.address.trim() }),
+        },
+        { new: true },
+      );
+
+      if (!updated) {
+        return {
+          statusCode: 404,
+          headers,
+          body: JSON.stringify({ error: "Company not found" }),
+        };
+      }
+
+      return {
+        statusCode: 200,
+        headers,
+        body: JSON.stringify({ success: true, company: updated }),
+      };
     }
-  }
 
-  const updateData = {
-    ...(typeof data.name === "string" && { name: data.name.trim() }),
-    ...(typeof data.nameHindi === "string" && { nameHindi: data.nameHindi.trim() }),
-    ...(typeof data.address === "string" && { address: data.address.trim() }),
-  }
+    // DELETE /api/companies/:id
+    if (event.httpMethod === "DELETE") {
+      if (!id) {
+        return {
+          statusCode: 400,
+          headers,
+          body: JSON.stringify({ error: "ID is required" }),
+        };
+      }
 
-  const updated = await Company.findByIdAndUpdate(
-    id,
-    updateData,
-    { new: true }
-  )
+      const deleted = await Company.findByIdAndDelete(id);
 
-  if (!updated) {
-    return {
-      statusCode: 404,
-      headers,
-      body: JSON.stringify({ error: "Company not found" }),
+      if (!deleted) {
+        return {
+          statusCode: 404,
+          headers,
+          body: JSON.stringify({ error: "Company not found" }),
+        };
+      }
+
+      return {
+        statusCode: 200,
+        headers,
+        body: JSON.stringify({ success: true }),
+      };
     }
-  }
-
-  return {
-    statusCode: 200,
-    headers,
-    body: JSON.stringify({ success: true, company: updated }),
-  }
-}
-
-// DELETE /api/companies/:id
-if (event.httpMethod === "DELETE" && id) {
-  const deleted = await Company.findByIdAndDelete(id)
-
-  if (!deleted) {
-    return {
-      statusCode: 404,
-      headers,
-      body: JSON.stringify({ error: "Company not found" }),
-    }
-  }
-
-  return {
-    statusCode: 200,
-    headers,
-    body: JSON.stringify({ success: true }),
-  }
-}
 
     return {
       statusCode: 405,
