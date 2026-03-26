@@ -37,10 +37,12 @@ export const addCompany = async (data) => {
 
 // UPDATE
 export const updateCompany = async (id, company) => {
-  return await apiCall(`/companies/${id}`, {
+  const result = await apiCall(`/companies/${id}`, {
     method: "PUT",
     body: JSON.stringify(company),
   });
+
+  return result.company;   // ✅ IMPORTANT
 };
 
 // DELETE
