@@ -2,7 +2,9 @@ import mongoose from 'mongoose'
 
 // MongoDB connection string - URL encode special characters in password (@ becomes %40)
 // In Vercel/Netlify, use environment variable MONGODB_URI
-const MONGODB_URI = process.env.MONGODB_URI 
+
+// const DEFAULT_MONGODB_URI = 'mongodb+srv://bansalayush8279:Ayush%401234@cluster0.jfltuuy.mongodb.net/invoice-app?retryWrites=true&w=majority'
+const MONGODB_URI = 'mongodb+srv://bansalayush8279:Ayush%408279@cluster0.esz6msp.mongodb.net/invoice-app?retryWrites=true&w=majority'
 
 let isConnected = false
 
