@@ -8,34 +8,30 @@ const MONGODB_URI = process.env.MONGODB_URI || DEFAULT_MONGODB_URI
 let isConnected = false
 
 // Connect to MongoDB
+let cached = global.mongoose
+
+if (!cached) {
+  cached = global.mongoose = { conn: null, promise: null }
+}
+
 export const connectDB = async () => {
-  if (isConnected && mongoose.connection.readyState === 1) {
-    return
+  if (cached.conn) {
+    return cached.conn
   }
 
-  try {
-    // Close existing connection if any
-    if (mongoose.connection.readyState !== 0) {
-      await mongoose.connection.close()
-    }
-
+  if (!cached.promise) {
     const uri = process.env.MONGODB_URI || MONGODB_URI
-    if (!uri) {
-      throw new Error('MONGODB_URI environment variable is not set')
-    }
 
-    await mongoose.connect(uri, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
+    cached.promise = mongoose.connect(uri, {
+      bufferCommands: false,
+    }).then((mongoose) => {
+      console.log("✅ MongoDB connected")
+      return mongoose
     })
-    isConnected = true
-    console.log('✅ Connected to MongoDB')
-  } catch (error) {
-    console.error('❌ MongoDB connection error:', error)
-    console.error('Connection string used:', process.env.MONGODB_URI ? 'From env var' : 'Default')
-    isConnected = false
-    throw error
   }
+
+  cached.conn = await cached.promise
+  return cached.conn
 }
 
 // Invoice Schema
@@ -93,8 +89,4 @@ export const LastInvoiceNumber = mongoose.models.LastInvoiceNumber || mongoose.m
 export const Item = mongoose.models.Item || mongoose.model('Item', itemSchema)
 export const Company = mongoose.models.Company || mongoose.model('Company', companySchema)
 
-// Initialize connection on import
-connectDB().catch(err => {
-  console.error('Failed to connect to MongoDB on startup:', err)
-})
 
