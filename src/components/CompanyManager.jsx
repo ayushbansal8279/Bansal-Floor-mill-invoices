@@ -45,9 +45,6 @@ const CompanyManager = () => {
     const updated = await updateCompany(editingId, formData);
 
     setCompanies(companies.map((c) => (c._id === editingId ? updated : c)));
-    setCompanies(
-      companies.map((c) => (c._id === editingId ? { ...c, ...formData } : c)),
-    );
 
     resetForm();
     toast.success("Company updated");

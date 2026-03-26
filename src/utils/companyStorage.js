@@ -27,17 +27,13 @@ export const getCompanies = async () => {
 
 // ADD
 export const addCompany = async (data) => {
-  const res = await fetch('/api/companies', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify(data)
-  })
+  const result = await apiCall("/companies", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
 
-  const result = await res.json()
-  return result.company   // ✅ IMPORTANT
-}
+  return result.company;
+};
 
 // UPDATE
 export const updateCompany = async (id, company) => {
