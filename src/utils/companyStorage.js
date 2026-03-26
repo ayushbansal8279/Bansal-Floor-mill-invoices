@@ -58,3 +58,16 @@ export const deleteCompany = async (id) => {
 export const saveCompany = async (company) => {
   return await addCompany(company);
 };
+
+export const getCompanySuggestions = async (query) => {
+  if (!query) return [];
+
+  try {
+    return await apiCall(
+      `/companies/suggestions?q=${encodeURIComponent(query)}`
+    );
+  } catch (err) {
+    console.error("Error getting suggestions:", err);
+    return [];
+  }
+};
