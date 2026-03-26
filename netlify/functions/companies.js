@@ -18,42 +18,55 @@ export const handler = async (event, context) => {
 
   try {
     await connectDB();
+
     const path = event.path.replace("/api/companies", "").replace(/^\//, "");
     const isSuggestions = path === "suggestions";
     const id = path && !isSuggestions ? path : null;
+
     let searchTerm = "";
 
     try {
       const url = new URL(
         event.rawUrl ||
-          `http://localhost${event.path}${event.rawQuery ? "?" + event.rawQuery : ""}`,
+          `http://localhost${event.path}${
+            event.rawQuery ? "?" + event.rawQuery : ""
+          }`,
       );
       searchTerm = url.searchParams.get("q") || "";
     } catch (e) {
       searchTerm = "";
     }
 
-    // ✅ FORCE string safety
+    // ✅ Ensure string
     if (typeof searchTerm !== "string") {
       searchTerm = "";
     }
 
     const term = searchTerm.toLowerCase();
 
+    // =========================================
     // GET /api/companies/suggestions
+    // =========================================
     if (event.httpMethod === "GET" && isSuggestions) {
       let companies;
-      if (!searchTerm) {
-        companies = await Company.find({}).limit(10);
+
+      if (!term) {
+        companies = await Company.find({})
+          .select("name nameHindi address")
+          .limit(10)
+          .lean();
       } else {
-        const term = searchTerm.toLowerCase();
         companies = await Company.find({
           $or: [
             { name: { $regex: term, $options: "i" } },
             { nameHindi: { $regex: term, $options: "i" } },
           ],
-        }).limit(10);
+        })
+          .select("name nameHindi address")
+          .limit(10)
+          .lean();
       }
+
       return {
         statusCode: 200,
         headers,
@@ -61,10 +74,14 @@ export const handler = async (event, context) => {
       };
     }
 
+    // =========================================
     // GET /api/companies
+    // =========================================
     if (event.httpMethod === "GET") {
-      const companies = await Company.find({});
-      console.log(companies);
+      const companies = await Company.find({})
+        .select("name nameHindi address")
+        .lean();
+
       return {
         statusCode: 200,
         headers,
@@ -72,7 +89,9 @@ export const handler = async (event, context) => {
       };
     }
 
+    // =========================================
     // POST /api/companies
+    // =========================================
     if (event.httpMethod === "POST") {
       let data = {};
 
@@ -86,7 +105,6 @@ export const handler = async (event, context) => {
         };
       }
 
-      // ✅ Safe extraction
       const name = typeof data.name === "string" ? data.name.trim() : "";
       const nameHindi =
         typeof data.nameHindi === "string" ? data.nameHindi.trim() : "";
@@ -101,7 +119,8 @@ export const handler = async (event, context) => {
         };
       }
 
-      const existing = await Company.findOne({ name });
+      const existing = await Company.findOne({ name }).lean();
+
       if (existing) {
         return {
           statusCode: 200,
@@ -129,7 +148,9 @@ export const handler = async (event, context) => {
       };
     }
 
+    // =========================================
     // PUT /api/companies/:id
+    // =========================================
     if (event.httpMethod === "PUT") {
       if (!id) {
         return {
@@ -176,7 +197,9 @@ export const handler = async (event, context) => {
       };
     }
 
+    // =========================================
     // DELETE /api/companies/:id
+    // =========================================
     if (event.httpMethod === "DELETE") {
       if (!id) {
         return {
@@ -210,10 +233,13 @@ export const handler = async (event, context) => {
     };
   } catch (error) {
     console.error("Error:", error);
+
     return {
       statusCode: 500,
       headers,
-      body: JSON.stringify({ error: error.message || "Internal server error" }),
+      body: JSON.stringify({
+        error: error.message || "Internal server error",
+      }),
     };
   }
 };
