@@ -45,7 +45,7 @@ const CompanyManager = () => {
     await updateCompany(editingId, formData);
 
     setCompanies(
-      companies.map((c) => (c.id === editingId ? { ...c, ...formData } : c)),
+      companies.map((c) => (c._id === editingId ? { ...c, ...formData } : c)),
     );
 
     resetForm();
@@ -55,7 +55,7 @@ const CompanyManager = () => {
   const handleDelete = async (id) => {
     if (window.confirm("Delete this company?")) {
       await deleteCompany(id);
-      setCompanies(companies.filter((c) => c.id !== id));
+      setCompanies(companies.filter((c) => c._id !== id));
       toast.success("Deleted");
     }
   };
@@ -135,7 +135,7 @@ const CompanyManager = () => {
 
       <div className="list">
         {companies.map((c) => (
-          <div key={c.id} className="card">
+          <div key={c._id} className="card">
   <div className="card-content">
     <h4 className="company-name">{c.name}</h4>
 
@@ -153,7 +153,7 @@ const CompanyManager = () => {
       <FiEdit2 />
     </button>
 
-    <button onClick={() => handleDelete(c.id)}>
+    <button onClick={() => handleDelete(c._id)}>
       <FiTrash2 />
     </button>
   </div>
