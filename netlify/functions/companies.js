@@ -53,23 +53,21 @@ const term = searchTerm.toLowerCase()
           ]
         }).limit(10)
       }
-      const companyNames = companies.map(c => c.name)
       return {
-        statusCode: 200,
-        headers,
-        body: JSON.stringify(companyNames)
-      }
+  statusCode: 200,
+  headers,
+  body: JSON.stringify(companies)
+}
     }
 
     // GET /api/companies
     if (event.httpMethod === 'GET') {
       const companies = await Company.find({})
-      const companyNames = companies.map(c => c.name)
       return {
-        statusCode: 200,
-        headers,
-        body: JSON.stringify(companyNames)
-      }
+  statusCode: 200,
+  headers,
+  body: JSON.stringify(companies)
+}
     }
 
     // POST /api/companies
