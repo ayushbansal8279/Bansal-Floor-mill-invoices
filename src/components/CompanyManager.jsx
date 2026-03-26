@@ -42,8 +42,9 @@ const CompanyManager = () => {
   };
 
   const handleUpdate = async () => {
-    await updateCompany(editingId, formData);
+    const updated = await updateCompany(editingId, formData);
 
+    setCompanies(companies.map((c) => (c._id === editingId ? updated : c)));
     setCompanies(
       companies.map((c) => (c._id === editingId ? { ...c, ...formData } : c)),
     );
@@ -61,7 +62,7 @@ const CompanyManager = () => {
   };
 
   const handleEdit = (company) => {
-    setEditingId(company.id);
+    setEditingId(company._id);
     setFormData(company);
     setShowForm(true);
   };
@@ -136,28 +137,26 @@ const CompanyManager = () => {
       <div className="list">
         {companies.map((c) => (
           <div key={c._id} className="card">
-  <div className="card-content">
-    <h4 className="company-name">{c.name}</h4>
+            <div className="card-content">
+              <h4 className="company-name">{c.name}</h4>
 
-    {c.nameHindi && (
-      <p className="company-hindi">{c.nameHindi}</p>
-    )}
+              {c.nameHindi && <p className="company-hindi">{c.nameHindi}</p>}
 
-    {c.address && (
-      <small className="company-address">{c.address}</small>
-    )}
-  </div>
+              {c.address && (
+                <small className="company-address">{c.address}</small>
+              )}
+            </div>
 
-  <div className="actions card-actions">
-    <button onClick={() => handleEdit(c)}>
-      <FiEdit2 />
-    </button>
+            <div className="actions card-actions">
+              <button onClick={() => handleEdit(c)}>
+                <FiEdit2 />
+              </button>
 
-    <button onClick={() => handleDelete(c._id)}>
-      <FiTrash2 />
-    </button>
-  </div>
-</div>
+              <button onClick={() => handleDelete(c._id)}>
+                <FiTrash2 />
+              </button>
+            </div>
+          </div>
         ))}
       </div>
     </div>
