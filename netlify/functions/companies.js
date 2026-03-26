@@ -63,6 +63,7 @@ export const handler = async (event, context) => {
     // GET /api/companies
     if (event.httpMethod === "GET") {
       const companies = await Company.find({});
+      console.log(companies)
       return {
         statusCode: 200,
         headers,
@@ -70,8 +71,6 @@ export const handler = async (event, context) => {
       };
     }
 
-    // POST /api/companies
-    // POST /api/companies
     // POST /api/companies
     if (event.httpMethod === "POST") {
       let data = {};
