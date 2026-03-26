@@ -20,8 +20,24 @@ export const handler = async (event, context) => {
     await connectDB()
     const path = event.path.replace('/api/companies', '').replace(/^\//, '')
     const isSuggestions = path === 'suggestions'
-    const url = new URL(event.rawUrl || `http://localhost${event.path}${event.rawQuery ? '?' + event.rawQuery : ''}`)
-    const searchTerm = url.searchParams.get('q') || ''
+    let searchTerm = ''
+
+try {
+  const url = new URL(
+    event.rawUrl || 
+    `http://localhost${event.path}${event.rawQuery ? '?' + event.rawQuery : ''}`
+  )
+  searchTerm = url.searchParams.get('q') || ''
+} catch (e) {
+  searchTerm = ''
+}
+
+// ✅ FORCE string safety
+if (typeof searchTerm !== 'string') {
+  searchTerm = ''
+}
+
+const term = searchTerm.toLowerCase()
 
     // GET /api/companies/suggestions
     if (event.httpMethod === 'GET' && isSuggestions) {
