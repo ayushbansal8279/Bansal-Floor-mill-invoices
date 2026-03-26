@@ -26,19 +26,23 @@ export const getCompanies = async () => {
 };
 
 // ADD
-export const addCompany = async (company) => {
-  return await apiCall("/companies", {
+export const addCompany = async (data) => {
+  const result = await apiCall("/companies", {
     method: "POST",
-    body: JSON.stringify(company),
+    body: JSON.stringify(data),
   });
+
+  return result.company;
 };
 
 // UPDATE
 export const updateCompany = async (id, company) => {
-  return await apiCall(`/companies/${id}`, {
+  const result = await apiCall(`/companies/${id}`, {
     method: "PUT",
     body: JSON.stringify(company),
   });
+
+  return result.company;   // ✅ IMPORTANT
 };
 
 // DELETE
@@ -51,4 +55,17 @@ export const deleteCompany = async (id) => {
 // SAVE (used in InvoiceForm)
 export const saveCompany = async (company) => {
   return await addCompany(company);
+};
+
+export const getCompanySuggestions = async (query) => {
+  if (!query) return [];
+
+  try {
+    return await apiCall(
+      `/companies/suggestions?q=${encodeURIComponent(query)}`
+    );
+  } catch (err) {
+    console.error("Error getting suggestions:", err);
+    return [];
+  }
 };

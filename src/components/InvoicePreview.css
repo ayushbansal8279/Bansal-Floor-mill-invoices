@@ -1482,3 +1482,48 @@
     display: table-cell !important;
   }
 }
+
+@media print {
+
+  /* 🔥 Company Name (BIG) */
+  .party-name {
+    font-size: 1.4rem !important;
+    font-weight: 700 !important;
+  }
+
+  /* Hindi Name */
+  .hindi-text {
+    font-size: 1.3rem !important;
+    font-weight: 700 !important;
+  }
+
+  /* Address */
+  .party-address {
+    font-size: 1rem !important;
+  }
+
+  /* 🔥 Item Names */
+  .items-table td.col-item {
+    font-size: 1.1rem !important;
+    font-weight: 600 !important;
+  }
+
+  /* Table header */
+  .items-table th {
+    font-size: 1rem !important;
+    font-weight: 700 !important;
+  }
+
+  /* Other table cells */
+  .items-table td {
+    font-size: 0.95rem !important;
+  }
+}
+
+.party-name {
+  letter-spacing: 0.5px;
+}
+
+.items-table td.col-item {
+  text-transform: capitalize;
+}

@@ -42,11 +42,9 @@ const CompanyManager = () => {
   };
 
   const handleUpdate = async () => {
-    await updateCompany(editingId, formData);
+    const updated = await updateCompany(editingId, formData);
 
-    setCompanies(
-      companies.map((c) => (c.id === editingId ? { ...c, ...formData } : c)),
-    );
+    setCompanies(companies.map((c) => (c._id === editingId ? updated : c)));
 
     resetForm();
     toast.success("Company updated");
@@ -55,13 +53,13 @@ const CompanyManager = () => {
   const handleDelete = async (id) => {
     if (window.confirm("Delete this company?")) {
       await deleteCompany(id);
-      setCompanies(companies.filter((c) => c.id !== id));
+      setCompanies(companies.filter((c) => c._id !== id));
       toast.success("Deleted");
     }
   };
 
   const handleEdit = (company) => {
-    setEditingId(company.id);
+    setEditingId(company._id);
     setFormData(company);
     setShowForm(true);
   };
@@ -135,29 +133,27 @@ const CompanyManager = () => {
 
       <div className="list">
         {companies.map((c) => (
-          <div key={c.id} className="card">
-  <div className="card-content">
-    <h4 className="company-name">{c.name}</h4>
+          <div key={c._id} className="card">
+            <div className="card-content">
+              <h4 className="company-name">{c.name}</h4>
 
-    {c.nameHindi && (
-      <p className="company-hindi">{c.nameHindi}</p>
-    )}
+              {c.nameHindi && <p className="company-hindi">{c.nameHindi}</p>}
 
-    {c.address && (
-      <small className="company-address">{c.address}</small>
-    )}
-  </div>
+              {c.address && (
+                <small className="company-address">{c.address}</small>
+              )}
+            </div>
 
-  <div className="actions card-actions">
-    <button onClick={() => handleEdit(c)}>
-      <FiEdit2 />
-    </button>
+            <div className="actions card-actions">
+              <button onClick={() => handleEdit(c)}>
+                <FiEdit2 />
+              </button>
 
-    <button onClick={() => handleDelete(c.id)}>
-      <FiTrash2 />
-    </button>
-  </div>
-</div>
+              <button onClick={() => handleDelete(c._id)}>
+                <FiTrash2 />
+              </button>
+            </div>
+          </div>
         ))}
       </div>
     </div>
